@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PreOrder Form & Kalkulator Pajak PPN</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, getDoc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+        
+        const firebaseConfig = {
+          apiKey: "AIzaSyBoOpKPh1mBAG5ConIohxqT4SMtFwW6Nq8",
+          authDomain: "tanda-terima-preorder-8c4d3.firebaseapp.com",
+          projectId: "tanda-terima-preorder-8c4d3",
+          storageBucket: "tanda-terima-preorder-8c4d3.firebasestorage.app",
+          messagingSenderId: "118639827128",
+          appId: "1:118639827128:web:0567bd329c9fd38cf9fc4d",
+          measurementId: "G-XV8ZERFB1N"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const preOrderCollection = collection(db, 'preOrderData');
+    </script>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="max-w-6xl mx-auto p-6">
+        <h1 class="text-4xl font-semibold text-center text-gray-800 mb-8">PreOrder Form & Kalkulator Pajak PPN</h1>
+        
+        <!-- Form PreOrder -->
+        <form id="preOrderForm" class="bg-white p-6 rounded-lg shadow-lg space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <input type="date" id="periode" name="periode" required class="border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" id="namaPT" name="namaPT" required class="border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" id="supplier" name="supplier" required class="border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" id="preOrder" name="preOrder" required class="border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" id="invoice" name="invoice" required class="border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="date" id="tglInvoice" name="tglInvoice" required class="border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="number" id="total" name="total" required class="border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" id="keterangan" name="keterangan" class="border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" id="faktur" name="faktur" class="border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <button type="submit" class="w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">Simpan Data</button>
+        </form>
+
+        <!-- Kalkulator Pajak PPN -->
+        <div class="mt-12 bg-white p-6 rounded-lg shadow-lg space-y-4">
+            <h2 class="text-2xl font-semibold text-gray-800">Kalkulator Pajak PPN</h2>
+            <input type="number" id="hargaBarang" class="border border-gray-300 p-3 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Harga Barang" oninput="calculateTax()">
+            <div id="hasilPajak" class="mt-4 text-xl text-gray-700">Hasil PPN: Rp. 0,00</div>
+        </div>
+        
+        <!-- Export Buttons -->
+        <div class="mt-6 flex gap-4">
+            <button id="exportExcel" class="py-3 px-6 bg-green-500 text-white rounded-md hover:bg-green-600 transition">Export Excel</button>
+            <button id="exportWord" class="py-3 px-6 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition">Export Word</button>
+            <button id="exportPDF" class="py-3 px-6 bg-red-500 text-white rounded-md hover:bg-red-600 transition">Export PDF</button>
+        </div>
+
+        <!-- Tabel Data PreOrder -->
+        <div class="mt-12 bg-white p-6 rounded-lg shadow-lg">
+            <table id="preOrderTable" class="min-w-full table-auto border-collapse">
+                <thead>
+                    <tr>
+                        <th class="py-3 px-4 border-b text-left">Nomor</th>
+                        <th class="py-3 px-4 border-b text-left">Periode</th>
+                        <th class="py-3 px-4 border-b text-left">Nama PT</th>
+                        <th class="py-3 px-4 border-b text-left">Supplier</th>
+                        <th class="py-3 px-4 border-b text-left">Total</th>
+                        <th class="py-3 px-4 border-b text-left">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Modal Edit Data -->
+        <div id="editModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center hidden">
+            <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+                <h3 class="text-xl font-semibold text-gray-800 mb-6">Edit Data</h3>
+                <form id="editForm" class="space-y-4">
+                    <input type="hidden" id="editId">
+                    <input type="date" id="editPeriode" class="border border-gray-300 p-3 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="text" id="editNamaPT" class="border border-gray-300 p-3 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="text" id="editSupplier" class="border border-gray-300 p-3 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="text" id="editPreOrder" class="border border-gray-300 p-3 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="text" id="editInvoice" class="border border-gray-300 p-3 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="date" id="editTglInvoice" class="border border-gray-300 p-3 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="number" id="editTotal" class="border border-gray-300 p-3 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="text" id="editKeterangan" class="border border-gray-300 p-3 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="text" id="editFaktur" class="border border-gray-300 p-3 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button type="submit" class="w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">Update Data</button>
+                </form>
+                <button class="mt-4 w-full py-3 bg-gray-400 text-white rounded-md hover:bg-gray-500 transition" onclick="closeEditModal()">Tutup</button>
+            </div>
+        </div>
+
+        <!-- Modal Delete -->
+        <div id="deleteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center hidden">
+            <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+                <h3 class="text-xl font-semibold text-gray-800 mb-6">Hapus Data</h3>
+                <p>Apakah Anda yakin ingin menghapus data ini?</p>
+                <div class="mt-6 flex gap-4">
+                    <button id="confirmDelete" class="py-3 px-6 bg-red-500 text-white rounded-md hover:bg-red-600 transition">Hapus</button>
+                    <button id="cancelDelete" class="py-3 px-6 bg-gray-400 text-white rounded-md hover:bg-gray-500 transition">Batal</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="firebase.js"></script>
+    <script type="module" src="app.js"></script>
+</body>
+</html>
