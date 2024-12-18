@@ -5,70 +5,141 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PreOrder Form & Kalkulator Pajak PPN</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"></script>
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body class="bg-gradient-to-r from-teal-50 to-blue-100 text-gray-800 font-sans">
 
-    <div class="max-w-6xl mx-auto p-6">
-        <h1 class="text-4xl font-semibold text-center text-gray-800 mb-8">PreOrder Form & Kalkulator Pajak PPN</h1>
-        
+    <div class="container mx-auto px-6 py-12">
+
+        <!-- Title -->
+        <header class="text-center mb-12">
+            <h1 class="text-5xl font-extrabold text-teal-600 mb-4 animate__animated animate__fadeIn animate__delay-1s">PreOrder System</h1>
+            <p class="text-xl text-gray-700 animate__animated animate__fadeIn animate__delay-2s">Kelola data PreOrder dan hitung Pajak PPN secara efisien dan modern</p>
+        </header>
+
         <!-- Form PreOrder -->
-        <form id="preOrderForm" class="bg-white p-6 rounded-lg shadow-lg space-y-6">
-            <!-- Form fields... -->
-            <button type="submit" class="w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">Simpan Data</button>
-        </form>
+        <section class="bg-white shadow-xl rounded-xl p-8">
+            <h2 class="text-3xl font-semibold text-gray-800 mb-6">Form PreOrder</h2>
+            <form id="preOrderForm" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <input type="date" id="periode" name="periode" required placeholder="Periode" class="form-input transition duration-300 hover:shadow-xl focus:ring-4 focus:ring-teal-300">
+                <input type="text" id="namaPT" name="namaPT" required placeholder="Nama PT" class="form-input transition duration-300 hover:shadow-xl focus:ring-4 focus:ring-teal-300">
+                <input type="text" id="supplier" name="supplier" required placeholder="Supplier" class="form-input transition duration-300 hover:shadow-xl focus:ring-4 focus:ring-teal-300">
+                <input type="text" id="preOrder" name="preOrder" required placeholder="PreOrder" class="form-input transition duration-300 hover:shadow-xl focus:ring-4 focus:ring-teal-300">
+                <input type="text" id="invoice" name="invoice" required placeholder="Invoice" class="form-input transition duration-300 hover:shadow-xl focus:ring-4 focus:ring-teal-300">
+                <input type="date" id="tglInvoice" name="tglInvoice" required class="form-input transition duration-300 hover:shadow-xl focus:ring-4 focus:ring-teal-300">
+                <input type="number" id="total" name="total" required placeholder="Total (Rp)" class="form-input transition duration-300 hover:shadow-xl focus:ring-4 focus:ring-teal-300">
+                <input type="text" id="keterangan" name="keterangan" placeholder="Keterangan" class="form-input transition duration-300 hover:shadow-xl focus:ring-4 focus:ring-teal-300">
+                <input type="text" id="faktur" name="faktur" placeholder="Faktur" class="form-input transition duration-300 hover:shadow-xl focus:ring-4 focus:ring-teal-300">
+            </form>
+            <button type="submit" class="w-full mt-6 bg-teal-600 text-white py-3 rounded-lg shadow-xl hover:bg-teal-700 transition-all transform hover:scale-105">
+                Simpan Data
+            </button>
+        </section>
 
         <!-- Kalkulator Pajak PPN -->
-        <div class="mt-12 bg-white p-6 rounded-lg shadow-lg space-y-4">
-            <h2 class="text-2xl font-semibold text-gray-800">Kalkulator Pajak PPN</h2>
-            <input type="number" id="hargaBarang" class="border border-gray-300 p-3 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Harga Barang" oninput="calculateTax()">
-            <div id="hasilPajak" class="mt-4 text-xl text-gray-700">Hasil PPN: Rp. 0,00</div>
-        </div>
-        
+        <section class="mt-12 bg-white shadow-xl rounded-xl p-8">
+            <h2 class="text-3xl font-semibold text-gray-800 mb-6">Kalkulator Pajak PPN</h2>
+            <div class="flex flex-col sm:flex-row items-center gap-4">
+                <input type="number" id="hargaBarang" placeholder="Masukkan Harga Barang" class="form-input flex-1 transition duration-300 hover:shadow-xl focus:ring-4 focus:ring-teal-300">
+                <button id="calculateBtn" class="w-full sm:w-auto bg-teal-500 text-white py-2 px-4 rounded-lg shadow-md hover:bg-teal-600 transition-all transform hover:scale-105">Hitung</button>
+            </div>
+            <div id="hasilPajak" class="mt-6 text-2xl font-semibold text-gray-700">
+                Hasil PPN: <span class="text-teal-600">Rp. 0,00</span>
+            </div>
+        </section>
+
         <!-- Export Buttons -->
-        <div class="mt-6 flex gap-4">
-            <button id="exportExcel" class="py-3 px-6 bg-green-500 text-white rounded-md hover:bg-green-600 transition">Export Excel</button>
-            <button id="exportWord" class="py-3 px-6 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition">Export Word</button>
-            <button id="exportPDF" class="py-3 px-6 bg-red-500 text-white rounded-md hover:bg-red-600 transition">Export PDF</button>
-        </div>
+        <!-- Export Buttons Section -->
+<section class="mt-8 flex flex-wrap gap-6 justify-center">
+    <button id="exportExcel" class="export-btn flex items-center bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 text-white py-3 px-8 rounded-lg shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all ease-in-out duration-300 space-x-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20l-5-5h3V3h4v12h3z"></path>
+        </svg>
+        <span>Export to Excel</span>
+    </button>
+
+    <button id="exportWord" class="export-btn flex items-center bg-gradient-to-r from-blue-400 to-blue-600 hover:from-blue-500 hover:to-blue-700 text-white py-3 px-8 rounded-lg shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all ease-in-out duration-300 space-x-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 2v20l16-10z"></path>
+        </svg>
+        <span>Export to Word</span>
+    </button>
+
+    <button id="exportPDF" class="export-btn flex items-center bg-gradient-to-r from-red-400 to-red-600 hover:from-red-500 hover:to-red-700 text-white py-3 px-8 rounded-lg shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all ease-in-out duration-300 space-x-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 4v16l8-8z"></path>
+        </svg>
+        <span>Export to PDF</span>
+    </button>
+</section>
+
+
+
+        <!-- Floating Action Button -->
+        <button id="fab" class="fixed bottom-8 right-8 bg-teal-600 text-white p-4 rounded-full shadow-lg hover:bg-teal-700 transition-all transform hover:scale-110">
+            <span class="material-icons">add</span>
+        </button>
 
         <!-- Tabel Data PreOrder -->
-        <div class="mt-12 bg-white p-6 rounded-lg shadow-lg">
-            <table id="preOrderTable" class="min-w-full table-auto border-collapse">
-                <!-- Tabel Headers... -->
-                <tbody></tbody>
-            </table>
-        </div>
-
-        <!-- Modal Edit Data -->
-        <div id="editModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center hidden">
-            <div class="bg-white p-6 rounded-lg shadow-lg w-96">
-                <h3 class="text-xl font-semibold text-gray-800 mb-6">Edit Data</h3>
-                <form id="editForm" class="space-y-4">
-                    <!-- Form fields... -->
-                    <button type="submit" class="w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">Update Data</button>
-                </form>
-                <button class="mt-4 w-full py-3 bg-gray-400 text-white rounded-md hover:bg-gray-500 transition" onclick="closeEditModal()">Tutup</button>
+        <section class="mt-12 bg-white shadow-xl rounded-xl p-8">
+            <h2 class="text-3xl font-semibold text-gray-800 mb-6">Data PreOrder</h2>
+            <div class="overflow-x-auto relative">
+                <table id="preOrderTable" class="w-full table-auto border-collapse text-left text-sm">
+                    <thead class="bg-teal-100 text-teal-700">
+                        <tr>
+                            <th class="py-4 px-6 border-b">#</th>
+                            <th class="py-4 px-6 border-b">Periode</th>
+                            <th class="py-4 px-6 border-b">Nama PT</th>
+                            <th class="py-4 px-6 border-b">Supplier</th>
+                            <th class="py-4 px-6 border-b">Total</th>
+                            <th class="py-4 px-6 border-b">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-300">
+                        <!-- Example Row -->
+                        <tr class="hover:bg-teal-50 transition-all">
+                            <td class="py-4 px-6">1</td>
+                            <td class="py-4 px-6">2024-12</td>
+                            <td class="py-4 px-6">PT. Contoh</td>
+                            <td class="py-4 px-6">Supplier A</td>
+                            <td class="py-4 px-6">Rp. 10.000.000</td>
+                            <td class="py-4 px-6 flex gap-3">
+                                <button class="action-btn bg-yellow-400 hover:bg-yellow-500 transition-all transform hover:scale-105">Edit</button>
+                                <button class="action-btn bg-red-500 hover:bg-red-600 transition-all transform hover:scale-105">Hapus</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
-        </div>
+        </section>
 
-        <!-- Modal Delete -->
-        <div id="deleteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center hidden">
-            <div class="bg-white p-6 rounded-lg shadow-lg w-96">
-                <h3 class="text-xl font-semibold text-gray-800 mb-6">Hapus Data</h3>
-                <p>Apakah Anda yakin ingin menghapus data ini?</p>
-                <div class="mt-6 flex gap-4">
-                    <button id="confirmDelete" class="py-3 px-6 bg-red-500 text-white rounded-md hover:bg-red-600 transition">Hapus</button>
-                    <button id="cancelDelete" class="py-3 px-6 bg-gray-400 text-white rounded-md hover:bg-gray-500 transition">Batal</button>
-                </div>
-            </div>
-        </div>
     </div>
 
-    <!-- Load Firebase and App Scripts at the end -->
-    <script type="module" src="firebase.js"></script>
-    <script type="module" src="app.js"></script>
+    <script>
+        // Kalkulasi Pajak PPN
+        function calculateTax() {
+            const hargaBarang = document.getElementById("hargaBarang").value;
+            if (hargaBarang) {
+                const hasilPajak = (hargaBarang / 1.11).toFixed(2);  // Formula: harga / 1.11
+                document.getElementById("hasilPajak").textContent = `Hasil PPN: Rp. ${formatCurrency(hasilPajak)}`;
+            } else {
+                document.getElementById("hasilPajak").textContent = "Hasil PPN: Rp. 0,00";
+            }
+        }
+
+        // Format Mata Uang
+        function formatCurrency(value) {
+            return parseFloat(value).toLocaleString('id-ID', {
+                style: 'currency',
+                currency: 'IDR'
+            });
+        }
+
+        // Button FAB Action
+        document.getElementById('fab').addEventListener('click', function() {
+            alert('Tambahkan Data');
+        });
+    </script>
+
 </body>
-</html>
+                    </html>
