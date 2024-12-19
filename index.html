@@ -5,10 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PreOrder Form & Kalkulator Pajak PPN</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 </head>
 <body class="bg-gradient-to-r from-teal-50 to-blue-100 text-gray-800 font-sans">
+
     <div class="container mx-auto px-6 py-12">
+
         <!-- Title -->
         <header class="text-center mb-12">
             <h1 class="text-5xl font-extrabold text-teal-600 mb-4 animate__animated animate__fadeIn animate__delay-1s">PreOrder System</h1>
@@ -29,7 +31,7 @@
                 <input type="text" id="keterangan" name="keterangan" placeholder="Keterangan" class="form-input transition duration-300 hover:shadow-xl focus:ring-4 focus:ring-teal-300">
                 <input type="text" id="faktur" name="faktur" placeholder="Faktur" class="form-input transition duration-300 hover:shadow-xl focus:ring-4 focus:ring-teal-300">
             </form>
-            <button id="submitData" class="w-full mt-6 bg-teal-600 text-white py-3 rounded-lg shadow-xl hover:bg-teal-700 transition-all transform hover:scale-105">
+            <button id="saveDataBtn" class="w-full mt-6 bg-teal-600 text-white py-3 rounded-lg shadow-xl hover:bg-teal-700 transition-all transform hover:scale-105">
                 Simpan Data
             </button>
         </section>
@@ -38,12 +40,42 @@
         <section class="mt-12 bg-white shadow-xl rounded-xl p-8">
             <h2 class="text-3xl font-semibold text-gray-800 mb-6">Kalkulator Pajak PPN</h2>
             <div class="flex flex-col sm:flex-row items-center gap-4">
-                <input type="text" id="hargaBarang" placeholder="Masukkan Harga Barang (Rp)" class="form-input flex-1 transition duration-300 hover:shadow-xl focus:ring-4 focus:ring-teal-300">
+                <input type="number" id="hargaBarang" placeholder="Masukkan Harga Barang" class="form-input flex-1 transition duration-300 hover:shadow-xl focus:ring-4 focus:ring-teal-300">
+                <button id="calculateBtn" class="w-full sm:w-auto bg-teal-500 text-white py-2 px-4 rounded-lg shadow-md hover:bg-teal-600 transition-all transform hover:scale-105">Hitung</button>
             </div>
             <div id="hasilPajak" class="mt-6 text-2xl font-semibold text-gray-700">
                 Hasil PPN: <span class="text-teal-600">Rp. 0,00</span>
             </div>
         </section>
+
+        <!-- Export Buttons Section -->
+        <section class="mt-8 flex flex-wrap gap-6 justify-center">
+            <button id="exportExcel" class="export-btn flex items-center bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 text-white py-3 px-8 rounded-lg shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all ease-in-out duration-300 space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 20l-5-5h3V3h4v12h3z"></path>
+                </svg>
+                <span>Export to Excel</span>
+            </button>
+
+            <button id="exportWord" class="export-btn flex items-center bg-gradient-to-r from-blue-400 to-blue-600 hover:from-blue-500 hover:to-blue-700 text-white py-3 px-8 rounded-lg shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all ease-in-out duration-300 space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 2v20l16-10z"></path>
+                </svg>
+                <span>Export to Word</span>
+            </button>
+
+            <button id="exportPDF" class="export-btn flex items-center bg-gradient-to-r from-red-400 to-red-600 hover:from-red-500 hover:to-red-700 text-white py-3 px-8 rounded-lg shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all ease-in-out duration-300 space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M6 4v16l8-8z"></path>
+                </svg>
+                <span>Export to PDF</span>
+            </button>
+        </section>
+
+        <!-- Floating Action Button -->
+        <button id="fab" class="fixed bottom-8 right-8 bg-teal-600 text-white p-4 rounded-full shadow-lg hover:bg-teal-700 transition-all transform hover:scale-110">
+            <span class="material-icons">add</span>
+        </button>
 
         <!-- Tabel Data PreOrder -->
         <section class="mt-12 bg-white shadow-xl rounded-xl p-8">
@@ -56,16 +88,53 @@
                             <th class="py-4 px-6 border-b">Periode</th>
                             <th class="py-4 px-6 border-b">Nama PT</th>
                             <th class="py-4 px-6 border-b">Supplier</th>
-                            <th class="py-4 px-6 border-b">Total</th>
+                            <th class="py-4 px-6 border-b">PreOrder</th>
+                            <th class="py-4 px-6 border-b">Invoice</th>
+                            <th class="py-4 px-6 border-b">Tanggal Invoice</th>
+                            <th class="py-4 px-6 border-b">Total (Rp)</th>
+                            <th class="py-4 px-6 border-b">Keterangan</th>
+                            <th class="py-4 px-6 border-b">Faktur</th>
                             <th class="py-4 px-6 border-b">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-300" id="tableBody">
+                    <tbody class="divide-y divide-gray-300">
+                        <!-- Data Rows Will Be Injected Here -->
                     </tbody>
                 </table>
             </div>
         </section>
+
+        <!-- Edit Modal -->
+        <div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+            <div class="bg-white rounded-lg p-8 w-full max-w-lg">
+                <h2 class="text-2xl font-semibold mb-4">Edit PreOrder</h2>
+                <form id="editForm" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <input type="hidden" id="editId">
+                    <input type="date" id="editPeriode" name="editPeriode" required placeholder="Periode" class="form-input transition duration-300 hover:shadow-xl focus:ring-4 focus:ring-teal-300">
+                    <input type="text" id="editNamaPT" name="editNamaPT" required placeholder="Nama PT" class="form-input transition duration-300 hover:shadow-xl focus:ring-4 focus:ring-teal-300">
+                    <input type="text" id="editSupplier" name="editSupplier" required placeholder="Supplier" class="form-input transition duration-300 hover:shadow-xl focus:ring-4 focus:ring-teal-300">
+                    <input type="text" id="editPreOrder" name="editPreOrder" required placeholder="PreOrder" class="form-input transition duration-300 hover:shadow-xl focus:ring-4 focus:ring-teal-300">
+                    <input type="text" id="editInvoice" name="editInvoice" required placeholder="Invoice" class="form-input transition duration-300 hover:shadow-xl focus:ring-4 focus:ring-teal-300">
+                    <input type="date" id="editTglInvoice" name="editTglInvoice" required class="form-input transition duration-300 hover:shadow-xl focus:ring-4 focus:ring-teal-300">
+                    <input type="number" id="editTotal" name="editTotal" required placeholder="Total (Rp)" class="form-input transition duration-300 hover:shadow-xl focus:ring-4 focus:ring-teal-300">
+                    <input type="text" id="editKeterangan" name="editKeterangan" placeholder="Keterangan" class="form-input transition duration-300 hover:shadow-xl focus:ring-4 focus:ring-teal-300">
+                    <input type="text" id="editFaktur" name="editFaktur" placeholder="Faktur" class="form-input transition duration-300 hover:shadow-xl focus:ring-4 focus:ring-teal-300">
+                </form>
+                <div class="mt-6 flex justify-end gap-4">
+                    <button id="closeModal" class="bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600">Cancel</button>
+                    <button id="updateDataBtn" class="bg-teal-600 text-white py-2 px-4 rounded-lg hover:bg-teal-700">Update</button>
+                </div>
+            </div>
+        </div>
+
     </div>
+
+    <!-- jsPDF and AutoTable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+
+    <!-- Include script.js -->
     <script type="module" src="script.js"></script>
+
 </body>
 </html>
