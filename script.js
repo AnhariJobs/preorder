@@ -5,13 +5,13 @@ import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.1.0/firebase
 
 // Firebase Configuration
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID",
-    measurementId: "YOUR_MEASUREMENT_ID"
+    apiKey: "AIzaSyBoOpKPh1mBAG5ConIohxqT4SMtFwW6Nq8",
+    authDomain: "tanda-terima-preorder-8c4d3.firebaseapp.com",
+    projectId: "tanda-terima-preorder-8c4d3",
+    storageBucket: "tanda-terima-preorder-8c4d3.firebasestorage.app",
+    messagingSenderId: "118639827128",
+    appId: "1:118639827128:web:0567bd329c9fd38cf9fc4d",
+    measurementId: "G-XV8ZERFB1N"
 };
 
 // Initialize Firebase
