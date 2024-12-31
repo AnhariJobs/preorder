@@ -1,6 +1,6 @@
 // Import Firebase SDK
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, query, onSnapshot, serverTimestamp, orderBy } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, query, onSnapshot, serverTimestamp, orderBy, getDoc } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-analytics.js";
 
 // Firebase Configuration
@@ -47,8 +47,9 @@ const notification = document.getElementById('notification');
 const notificationMessage = document.getElementById('notificationMessage');
 const closeNotificationBtn = document.getElementById('closeNotification');
 
-// Current Editing Document ID
+// Current Editing Document ID and Original Data
 let currentEditId = null;
+let originalEditData = null;
 
 // Data Storage
 let allData = []; // All fetched data
@@ -92,7 +93,9 @@ function showNotification(message, type = 'success') {
         notification.firstElementChild.classList.add('bg-red-500');
     }
     notification.classList.remove('hidden');
-    setTimeout(() => {
+    // Restart the timeout if the notification is already visible
+    clearTimeout(notification.timeout);
+    notification.timeout = setTimeout(() => {
         notification.classList.add('hidden');
     }, 3000);
 }
@@ -330,8 +333,10 @@ exportExcelBtn.addEventListener('click', async () => {
                     ket: data.keterangan || '',
                     fp: data.faktur || ''
                 });
-                subtotal += data.total;
             });
+
+            // Hitung subtotal setelah menambahkan semua data untuk supplier ini
+            subtotal = dataGroup.reduce((acc, curr) => acc + curr.total, 0);
 
             // Tambahkan baris subtotal per supplier (hanya di kolom 'Total (Rp)')
             const subtotalRow = worksheet.addRow({
@@ -362,7 +367,7 @@ exportExcelBtn.addEventListener('click', async () => {
         worksheet.addRow({});
         worksheet.addRow({});
 
-        // Tambahkan tanggal di kolom 'fp'
+        // Tambahkan tanggal di kolom 'FP'
         const today = new Date();
         const formattedDate = `${today.getDate().toString().padStart(2, '0')}-${(today.getMonth()+1).toString().padStart(2, '0')}-${today.getFullYear()}`;
         const dateRow = worksheet.addRow({
@@ -689,8 +694,25 @@ async function deleteData(id) {
 }
 
 // Function to open edit modal
-function openEditModal(id, data) {
+async function openEditModal(id, data) {
     currentEditId = id;
+
+    // Fetch original data from Firestore to ensure up-to-date data
+    try {
+        const docRef = doc(db, "preOrderData", id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            originalEditData = docSnap.data();
+        } else {
+            showNotification('Data tidak ditemukan.', 'error');
+            return;
+        }
+    } catch (error) {
+        console.error("Error fetching document: ", error);
+        showNotification('Gagal mengambil data asli.', 'error');
+        return;
+    }
+
     document.getElementById('editPeriode').value = data.periode;
     document.getElementById('editNamaPT').value = data.namaPT;
     document.getElementById('editSupplier').value = data.supplier;
@@ -707,11 +729,18 @@ function openEditModal(id, data) {
 cancelEditBtn.addEventListener('click', () => {
     editModal.classList.add('hidden');
     editForm.reset();
+    originalEditData = null;
 });
 
 // Handle edit form submission
 editForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    if (!currentEditId) {
+        showNotification('Tidak ada data yang dipilih untuk diedit.', 'error');
+        return;
+    }
+
     const periode = editForm.editPeriode.value;
     const namaPT = editForm.editNamaPT.value.trim();
     const supplier = editForm.editSupplier.value.trim();
@@ -725,6 +754,24 @@ editForm.addEventListener('submit', async (e) => {
     // Validasi di JavaScript untuk memastikan semua field terisi
     if (!periode || !namaPT || !supplier || !preOrder || !invoice || !tglInvoice || isNaN(total) || total < 0 || !keterangan || !faktur) {
         showNotification('Silakan isi semua field dengan benar sebelum memperbarui data.', 'error');
+        return;
+    }
+
+    // Cek apakah ada perubahan data
+    const isDataChanged = (
+        periode !== originalEditData.periode ||
+        namaPT !== originalEditData.namaPT ||
+        supplier !== originalEditData.supplier ||
+        preOrder !== originalEditData.preOrder ||
+        invoice !== originalEditData.invoice ||
+        tglInvoice !== originalEditData.tglInvoice ||
+        total !== originalEditData.total ||
+        keterangan !== originalEditData.keterangan ||
+        faktur !== originalEditData.faktur
+    );
+
+    if (!isDataChanged) {
+        showNotification('Tidak ada perubahan data yang dilakukan.', 'error');
         return;
     }
 
@@ -743,6 +790,7 @@ editForm.addEventListener('submit', async (e) => {
         });
         editModal.classList.add('hidden');
         editForm.reset();
+        originalEditData = null;
         showNotification('Data berhasil diperbarui.', 'success');
     } catch (error) {
         console.error("Error updating document: ", error);
