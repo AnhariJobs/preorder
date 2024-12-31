@@ -276,154 +276,127 @@ exportExcelBtn.addEventListener('click', async () => {
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('PreOrderData');
 
-        // Definisikan kolom dengan header dan lebar sesuai print-excel.html
-        worksheet.columns = [
-            { header: 'No', key: 'no', width: 5 },
-            { header: 'Periode', key: 'periode', width: 10 },
-            { header: 'PT', key: 'pt', width: 20 },
-            { header: 'Supplier', key: 'supplier', width: 25 },
-            { header: 'No. Po', key: 'po', width: 25 },
-            { header: 'No. Inv', key: 'inv', width: 20 },
-            { header: 'Tgl Inv', key: 'tglInv', width: 15 },
-            { header: 'Total (Rp)', key: 'total', width: 15 },
-            { header: 'KET', key: 'ket', width: 15 },
-            { header: 'FP', key: 'fp', width: 20 },
-        ];
+        // Menambahkan 2 baris judul di atas tabel
+        // Baris 1: Kosong
+        worksheet.addRow(['']);
+        // Baris 2: Judul Tabel
+        const titleRow = worksheet.addRow(['TANDA TERIMA PREORDER']);
+        // Menggabungkan sel dari A2 hingga J2 (10 kolom)
+        worksheet.mergeCells('A2:J2');
+        titleRow.getCell(1).font = { size: 16, bold: true };
+        titleRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
 
-        // Tambahkan header style
-        const headerRow = worksheet.getRow(1);
+        // Menambahkan baris header di baris 3
+        const headerRow = worksheet.addRow(['No', 'Periode', 'PT', 'Supplier', 'No. Po', 'No. Inv', 'Tgl Inv', 'Total (Rp)', 'KET', 'FP']);
         headerRow.font = { bold: true };
-        headerRow.alignment = { horizontal: 'center' };
-        // Tambahkan border pada header
+        headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
         headerRow.eachCell((cell) => {
             cell.border = {
-                top: { style: 'thin' },
-                left: { style: 'thin' },
-                bottom: { style: 'thin' },
-                right: { style: 'thin' }
+                top: { style: 'thick', color: { argb: '000000' } },
+                bottom: { style: 'thick', color: { argb: '000000' } },
+                left: { style: 'none' },
+                right: { style: 'none' }
             };
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFE0F2F1' } // Warna latar belakang header
+            };
+            cell.font = { color: { argb: 'FF00695C' }, bold: true };
         });
 
-        // Mengelompokkan data berdasarkan supplier
+        // Mengelompokkan data berdasarkan PT dan Supplier
         const groupedData = {};
         filteredData.forEach((data) => {
-            if (!groupedData[data.supplier]) {
-                groupedData[data.supplier] = [];
+            const key = `${data.namaPT}|${data.supplier}`;
+            if (!groupedData[key]) {
+                groupedData[key] = [];
             }
-            groupedData[data.supplier].push(data);
+            groupedData[key].push(data);
         });
 
-        let serialNo = 1;
         let grandTotal = 0;
 
-        // Iterasi melalui setiap grup supplier
-        for (const [supplier, dataGroup] of Object.entries(groupedData)) {
+        // Iterasi melalui setiap grup PT dan Supplier
+        for (const [key, dataGroup] of Object.entries(groupedData)) {
+            const [namaPT, supplier] = key.split('|');
             let subtotal = 0;
 
-            dataGroup.forEach((data) => {
-                const row = worksheet.addRow({
-                    no: serialNo++,
-                    periode: formatPeriode(data.periode),
-                    pt: data.namaPT,
-                    supplier: data.supplier,
-                    po: data.preOrder,
-                    inv: data.invoice,
-                    tglInv: formatTanggal(data.tglInvoice),
-                    total: Number(data.total),
-                    ket: data.keterangan || '',
-                    fp: data.faktur || ''
+            dataGroup.forEach((data, index) => {
+                // Jika ini adalah baris pertama dalam grup, tampilkan PT dan Supplier
+                // Jika bukan, biarkan kolom PT dan Supplier kosong
+                const rowValues = [
+                    index === 0 ? 1 : '',
+                    formatPeriode(data.periode),
+                    index === 0 ? namaPT : '',
+                    index === 0 ? supplier : '',
+                    data.preOrder,
+                    data.invoice,
+                    formatTanggal(data.tglInvoice),
+                    Number(data.total),
+                    data.keterangan || '',
+                    data.faktur || ''
+                ];
+
+                const row = worksheet.addRow(rowValues);
+
+                // Mengatur alignment ke tengah
+                row.eachCell((cell) => {
+                    cell.alignment = { horizontal: 'center', vertical: 'middle' };
                 });
+
+                subtotal += data.total;
             });
 
-            // Hitung subtotal setelah menambahkan semua data untuk supplier ini
-            subtotal = dataGroup.reduce((acc, curr) => acc + curr.total, 0);
-
-            // Tambahkan baris subtotal per supplier (hanya di kolom 'Total (Rp)')
-            const subtotalRow = worksheet.addRow({
-                no: '',
-                periode: '',
-                pt: '',
-                supplier: '',
-                po: '',
-                inv: '',
-                tglInv: '',
-                total: subtotal,
-                ket: '',
-                fp: ''
-            });
+            // Tambahkan baris subtotal per grup PT dan Supplier (hanya di kolom 'Total (Rp)')
+            const subtotalRow = worksheet.addRow(['', '', '', '', '', '', '', subtotal, '', '']);
             subtotalRow.font = { bold: true };
-            subtotalRow.getCell('total').numFmt = '#,##0';
-            subtotalRow.getCell('total').alignment = { horizontal: 'right' };
-
-            // Tambahkan border bawah pada cell 'total' untuk subtotal
-            subtotalRow.getCell('total').border = {
-                bottom: { style: 'thin' }
+            subtotalRow.getCell(8).numFmt = '#,##0';
+            subtotalRow.getCell(8).alignment = { horizontal: 'right', vertical: 'middle' };
+            subtotalRow.getCell(8).border = {
+                bottom: { style: 'thick', color: { argb: '000000' } }
             };
 
             grandTotal += subtotal;
         }
 
         // Tambahkan beberapa baris kosong sebelum footer
-        worksheet.addRow({});
-        worksheet.addRow({});
+        worksheet.addRow(['']);
+        worksheet.addRow(['']);
 
         // Tambahkan tanggal di kolom 'FP'
         const today = new Date();
-        const formattedDate = `${today.getDate().toString().padStart(2, '0')}-${(today.getMonth()+1).toString().padStart(2, '0')}-${today.getFullYear()}`;
-        const dateRow = worksheet.addRow({
-            no: '',
-            periode: '',
-            pt: '',
-            supplier: '',
-            po: '',
-            inv: '',
-            tglInv: '',
-            total: '',
-            ket: '',
-            fp: `Pekanbaru, ${formattedDate}`
-        });
-        dateRow.alignment = { horizontal: 'right' };
+        const formattedDate = `${today.getDate().toString().padStart(2, '0')}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getFullYear()}`;
+        const dateRow = worksheet.addRow(['', '', '', '', '', '', '', '', '', `Pekanbaru, ${formattedDate}`]);
+        dateRow.alignment = { horizontal: 'center', vertical: 'middle' };
 
         // Tambahkan row untuk label tanda tangan dengan jarak 1 kolom antar label
-        const signatureLabelsRow = worksheet.addRow({
-            no: '',
-            periode: '',
-            pt: '',
-            supplier: '',
-            po: '',
-            inv: 'Diterima Oleh,',
-            tglInv: '', // Gap column
-            total: 'TT Faktur Pajak,',
-            ket: '', // Gap column
-            fp: 'Diserahkan Oleh,'
-        });
+        const signatureLabelsRow = worksheet.addRow(['', '', '', '', '', 'Diterima Oleh,', '', 'TT Faktur Pajak,', '', 'Diserahkan Oleh,']);
         signatureLabelsRow.font = { bold: true };
-        signatureLabelsRow.alignment = { horizontal: 'center' };
+        signatureLabelsRow.alignment = { horizontal: 'center', vertical: 'middle' };
 
         // Tambahkan 4 baris kosong sebelum nama penandatangan
-        worksheet.addRow({});
-        worksheet.addRow({});
-        worksheet.addRow({});
-        worksheet.addRow({});
+        for (let i = 0; i < 4; i++) {
+            worksheet.addRow(['', '', '', '', '', '', '', '', '', '']);
+        }
 
         // Tambahkan row dengan nama penanda tangan dengan jarak 1 kolom antar nama
-        const signatureNamesRow = worksheet.addRow({
-            no: '',
-            periode: '',
-            pt: '',
-            supplier: '',
-            po: '',
-            inv: 'Qodari',
-            tglInv: '', // Gap column
-            total: 'Dina',
-            ket: '', // Gap column
-            fp: 'Kantthi'
-        });
-        signatureNamesRow.alignment = { horizontal: 'center' };
+        const signatureNamesRow = worksheet.addRow(['', '', '', '', '', 'Qodari', '', 'Dina', '', 'Kantthi']);
+        signatureNamesRow.alignment = { horizontal: 'center', vertical: 'middle' };
 
-        // Format kolom 'Total (Rp)' ke format Rupiah dan selaraskan ke kanan
-        worksheet.getColumn('total').numFmt = '#,##0';
-        worksheet.getColumn('total').alignment = { horizontal: 'right' };
+        // Mengatur lebar kolom agar sesuai dengan isi
+        worksheet.columns.forEach(column => {
+            let maxLength = 0;
+            column.eachCell({ includeEmpty: true }, cell => {
+                const cellValue = cell.value ? cell.value.toString() : '';
+                const columnLength = cellValue.length;
+                if (columnLength > maxLength) {
+                    maxLength = columnLength;
+                }
+            });
+            // Set lebar minimum 10, atau panjang maksimum + 2
+            column.width = maxLength < 10 ? 10 : maxLength + 2;
+        });
 
         // Simpan workbook ke buffer
         const buffer = await workbook.xlsx.writeBuffer();
@@ -481,26 +454,28 @@ exportWordBtn.addEventListener('click', () => {
                 </tr>
         `;
 
-        // Mengelompokkan data berdasarkan supplier
+        // Mengelompokkan data berdasarkan PT dan Supplier
         const groupedData = {};
         filteredData.forEach((data) => {
-            if (!groupedData[data.supplier]) {
-                groupedData[data.supplier] = [];
+            const key = `${data.namaPT}|${data.supplier}`;
+            if (!groupedData[key]) {
+                groupedData[key] = [];
             }
-            groupedData[data.supplier].push(data);
+            groupedData[key].push(data);
         });
 
-        // Iterasi melalui setiap grup supplier
-        for (const [supplier, dataGroup] of Object.entries(groupedData)) {
+        // Iterasi melalui setiap grup PT dan Supplier
+        for (const [key, dataGroup] of Object.entries(groupedData)) {
+            const [namaPT, supplier] = key.split('|');
             let subtotal = 0;
 
             dataGroup.forEach((data, index) => {
                 tableContent += `
                     <tr>
-                        <td>${index + 1}</td>
+                        <td>${index === 0 ? 1 : ''}</td>
                         <td>${formatPeriode(data.periode)}</td>
-                        <td>${data.namaPT}</td>
-                        <td>${data.supplier}</td>
+                        <td>${index === 0 ? namaPT : ''}</td>
+                        <td>${index === 0 ? supplier : ''}</td>
                         <td>${data.preOrder}</td>
                         <td>${data.invoice}</td>
                         <td>${formatTanggal(data.tglInvoice)}</td>
@@ -512,7 +487,7 @@ exportWordBtn.addEventListener('click', () => {
                 subtotal += data.total;
             });
 
-            // Tambahkan baris subtotal per supplier (hanya di kolom 'Total (Rp)')
+            // Tambahkan baris subtotal per grup PT dan Supplier (hanya di kolom 'Total (Rp)')
             tableContent += `
                 <tr>
                     <td colspan="7"></td>
@@ -580,30 +555,36 @@ exportPDFBtn.addEventListener('click', () => {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
+        // Add title
+        doc.setFontSize(15);
+        doc.text("Data PreOrder", 14, 16);
+
         // Prepare data
         const rows = [];
 
-        // Mengelompokkan data berdasarkan supplier
+        // Mengelompokkan data berdasarkan PT dan Supplier
         const groupedData = {};
         filteredData.forEach((data) => {
-            if (!groupedData[data.supplier]) {
-                groupedData[data.supplier] = [];
+            const key = `${data.namaPT}|${data.supplier}`;
+            if (!groupedData[key]) {
+                groupedData[key] = [];
             }
-            groupedData[data.supplier].push(data);
+            groupedData[key].push(data);
         });
 
         let grandTotal = 0;
 
-        // Iterasi melalui setiap grup supplier
-        for (const [supplier, dataGroup] of Object.entries(groupedData)) {
+        // Iterasi melalui setiap grup PT dan Supplier
+        for (const [key, dataGroup] of Object.entries(groupedData)) {
+            const [namaPT, supplier] = key.split('|');
             let subtotal = 0;
 
             dataGroup.forEach((data, index) => {
                 rows.push([
-                    index + 1,
+                    index === 0 ? 1 : '',
                     formatPeriode(data.periode),
-                    data.namaPT,
-                    data.supplier,
+                    index === 0 ? namaPT : '',
+                    index === 0 ? supplier : '',
                     data.preOrder,
                     data.invoice,
                     formatTanggal(data.tglInvoice),
@@ -614,7 +595,7 @@ exportPDFBtn.addEventListener('click', () => {
                 subtotal += data.total;
             });
 
-            // Tambahkan baris subtotal per supplier (hanya di kolom 'Total (Rp)')
+            // Tambahkan baris subtotal per grup PT dan Supplier (hanya di kolom 'Total (Rp)')
             rows.push([
                 '',
                 '',
@@ -631,17 +612,13 @@ exportPDFBtn.addEventListener('click', () => {
             grandTotal += subtotal;
         }
 
-        // Add title
-        doc.setFontSize(15);
-        doc.text("Data PreOrder", 14, 16);
-
         // Add table
         doc.autoTable({
-            head: [['Nomor', 'Periode', 'Nama PT', 'Supplier', 'PreOrder', 'Invoice', 'Tgl Inv', 'Total (Rp)', 'Keterangan', 'Faktur']],
+            head: [['No', 'Periode', 'PT', 'Supplier', 'PreOrder', 'Invoice', 'Tgl Inv', 'Total (Rp)', 'Keterangan', 'Faktur']],
             body: rows,
             startY: 20,
-            styles: { fontSize: 8 },
-            headStyles: { fillColor: [40, 167, 69] },
+            styles: { fontSize: 8, halign: 'center', valign: 'middle' },
+            headStyles: { fillColor: [40, 167, 69], halign: 'center', valign: 'middle' },
             theme: 'striped'
         });
 
@@ -658,7 +635,7 @@ exportPDFBtn.addEventListener('click', () => {
                 ['', '', '', '', ''],
                 ['Qodari', '', 'Dina', '', 'Kantthi']
             ],
-            styles: { halign: 'center', valign: 'middle' },
+            styles: { halign: 'center', valign: 'middle', fontStyle: 'bold' },
             tableWidth: '100%',
             columnStyles: {
                 0: { cellWidth: '20%' },
