@@ -8,17 +8,37 @@
     <!-- Heroicons for pagination buttons -->
     <script src="https://unpkg.com/heroicons@2.0.13/dist/outline.min.js"></script>
     <!-- SheetJS for Excel export -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <!-- jsPDF for PDF export -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+   <!-- For XLSX -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+
+<!-- For jsPDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
     <!-- jsPDF AutoTable plugin -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <style>
-        /* Custom styles for notification */
+        /* Custom styles for notification */      
         #notification {
             transition: opacity 0.5s ease-in-out;
         }
+#editModal {
+    max-height: 90vh; /* Maksimum tinggi modal 90% dari tinggi layar */
+    overflow-y: auto; /* Menambahkan scroll vertikal jika konten lebih tinggi dari 90vh */
+}
+
+#editModal > .bg-white {
+    max-height: 100%; /* Pastikan modal bagian dalam dapat mengisi 100% dari ruang yang tersedia */
+    overflow-y: auto; /* Tambahkan scroll vertikal di dalam modal */
+}
+
+/* Responsif untuk layar kecil */
+@media (max-width: 640px) {
+    #editModal > .bg-white {
+        width: 90%; /* Untuk layar kecil, modal akan mengambil 90% dari lebar layar */
+    }
+}
+
     </style>
 </head>
 <body class="bg-gradient-to-r from-teal-50 to-blue-100 text-gray-800 font-sans">
