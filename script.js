@@ -67,24 +67,6 @@ function formatRupiah(value, withDecimal = false) {
     }
 }
 
-// Function to parse Rupiah formatted string to number (Tidak digunakan lagi untuk total)
-// function parseRupiah(rupiah) {
-//     return Number(rupiah.replace(/\./g, '').replace('Rp.', '').replace(',', '.'));
-// }
-
-// Menghapus auto-format Rupiah pada input "Total (Rp)"
-// const totalInput = document.getElementById('total');
-// totalInput.addEventListener('input', (e) => {
-//     let value = e.target.value.replace(/[^0-9]/g, '');
-//     e.target.value = formatRupiah(value);
-// });
-
-// const editTotalInput = document.getElementById('editTotal');
-// editTotalInput.addEventListener('input', (e) => {
-//     let value = e.target.value.replace(/[^0-9]/g, '');
-//     e.target.value = formatRupiah(value);
-// });
-
 // Auto-calculate PPN when 'hargaBarang' changes
 hargaBarangInput.addEventListener('input', calculateTax);
 
@@ -285,36 +267,194 @@ clearFiltersBtn.addEventListener('click', () => {
     showNotification('Filter telah dihapus.', 'success');
 });
 
-// Export to Excel (.xlsx)
-exportExcelBtn.addEventListener('click', () => {
+// Export to Excel (.xlsx) menggunakan ExcelJS
+exportExcelBtn.addEventListener('click', async () => {
     try {
-        // Prepare data
-        const dataToExport = filteredData.map((data, index) => ({
-            Nomor: index + 1,
-            Periode: data.periode,
-            "Nama PT": data.namaPT,
-            Supplier: data.supplier,
-            PreOrder: data.preOrder,
-            Invoice: data.invoice,
-            "Tanggal Invoice": data.tglInvoice,
-            "Total (Rp)": formatRupiah(data.total.toString(), true),
-            Keterangan: data.keterangan || '-',
-            Faktur: data.faktur || '-'
-        }));
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('PreOrderData');
 
-        // Create worksheet
-        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "PreOrderData");
+        // Definisikan kolom dengan header dan lebar sesuai print-excel.html
+        worksheet.columns = [
+            { header: 'No', key: 'no', width: 5 },
+            { header: 'Periode', key: 'periode', width: 10 },
+            { header: 'PT', key: 'pt', width: 20 },
+            { header: 'Supplier', key: 'supplier', width: 25 },
+            { header: 'No. Po', key: 'po', width: 25 },
+            { header: 'No. Inv', key: 'inv', width: 20 },
+            { header: 'Tgl Inv', key: 'tglInv', width: 15 },
+            { header: 'Total (Rp)', key: 'total', width: 15 },
+            { header: 'KET', key: 'ket', width: 15 },
+            { header: 'FP', key: 'fp', width: 20 },
+        ];
 
-        // Generate file
-        XLSX.writeFile(workbook, "preOrderData.xlsx");
+        // Tambahkan header style
+        const headerRow = worksheet.getRow(1);
+        headerRow.font = { bold: true };
+        headerRow.alignment = { horizontal: 'center' };
+        // Tambahkan border pada header
+        headerRow.eachCell((cell) => {
+            cell.border = {
+                top: { style: 'thin' },
+                left: { style: 'thin' },
+                bottom: { style: 'thin' },
+                right: { style: 'thin' }
+            };
+        });
+
+        // Mengelompokkan data berdasarkan supplier
+        const groupedData = {};
+        filteredData.forEach((data) => {
+            if (!groupedData[data.supplier]) {
+                groupedData[data.supplier] = [];
+            }
+            groupedData[data.supplier].push(data);
+        });
+
+        let serialNo = 1;
+        let grandTotal = 0;
+
+        // Iterasi melalui setiap grup supplier
+        for (const [supplier, dataGroup] of Object.entries(groupedData)) {
+            let subtotal = 0;
+
+            dataGroup.forEach((data) => {
+                const row = worksheet.addRow({
+                    no: serialNo++,
+                    periode: formatPeriode(data.periode),
+                    pt: data.namaPT,
+                    supplier: data.supplier,
+                    po: data.preOrder,
+                    inv: data.invoice,
+                    tglInv: formatTanggal(data.tglInvoice),
+                    total: Number(data.total),
+                    ket: data.keterangan || '',
+                    fp: data.faktur || ''
+                });
+                subtotal += data.total;
+            });
+
+            // Tambahkan baris subtotal per supplier (hanya di kolom 'Total (Rp)')
+            const subtotalRow = worksheet.addRow({
+                no: '',
+                periode: '',
+                pt: '',
+                supplier: '',
+                po: '',
+                inv: '',
+                tglInv: '',
+                total: subtotal,
+                ket: '',
+                fp: ''
+            });
+            subtotalRow.font = { bold: true };
+            subtotalRow.getCell('total').numFmt = '#,##0';
+            subtotalRow.getCell('total').alignment = { horizontal: 'right' };
+
+            // Tambahkan border bawah pada cell 'total' untuk subtotal
+            subtotalRow.getCell('total').border = {
+                bottom: { style: 'thin' }
+            };
+
+            grandTotal += subtotal;
+        }
+
+        // Tambahkan beberapa baris kosong sebelum footer
+        worksheet.addRow({});
+        worksheet.addRow({});
+
+        // Tambahkan tanggal di kolom 'fp'
+        const today = new Date();
+        const formattedDate = `${today.getDate().toString().padStart(2, '0')}-${(today.getMonth()+1).toString().padStart(2, '0')}-${today.getFullYear()}`;
+        const dateRow = worksheet.addRow({
+            no: '',
+            periode: '',
+            pt: '',
+            supplier: '',
+            po: '',
+            inv: '',
+            tglInv: '',
+            total: '',
+            ket: '',
+            fp: `Pekanbaru, ${formattedDate}`
+        });
+        dateRow.alignment = { horizontal: 'right' };
+
+        // Tambahkan row untuk label tanda tangan dengan jarak 1 kolom antar label
+        const signatureLabelsRow = worksheet.addRow({
+            no: '',
+            periode: '',
+            pt: '',
+            supplier: '',
+            po: '',
+            inv: 'Diterima Oleh,',
+            tglInv: '', // Gap column
+            total: 'TT Faktur Pajak,',
+            ket: '', // Gap column
+            fp: 'Diserahkan Oleh,'
+        });
+        signatureLabelsRow.font = { bold: true };
+        signatureLabelsRow.alignment = { horizontal: 'center' };
+
+        // Tambahkan 4 baris kosong sebelum nama penandatangan
+        worksheet.addRow({});
+        worksheet.addRow({});
+        worksheet.addRow({});
+        worksheet.addRow({});
+
+        // Tambahkan row dengan nama penanda tangan dengan jarak 1 kolom antar nama
+        const signatureNamesRow = worksheet.addRow({
+            no: '',
+            periode: '',
+            pt: '',
+            supplier: '',
+            po: '',
+            inv: 'Qodari',
+            tglInv: '', // Gap column
+            total: 'Dina',
+            ket: '', // Gap column
+            fp: 'Kantthi'
+        });
+        signatureNamesRow.alignment = { horizontal: 'center' };
+
+        // Format kolom 'Total (Rp)' ke format Rupiah dan selaraskan ke kanan
+        worksheet.getColumn('total').numFmt = '#,##0';
+        worksheet.getColumn('total').alignment = { horizontal: 'right' };
+
+        // Simpan workbook ke buffer
+        const buffer = await workbook.xlsx.writeBuffer();
+
+        // Buat Blob dan trigger download
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'preOrderData.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
         showNotification('Data berhasil diekspor ke Excel.', 'success');
     } catch (error) {
         console.error("Error exporting to Excel: ", error);
         showNotification('Gagal mengekspor data ke Excel.', 'error');
     }
 });
+
+// Fungsi untuk memformat periode sesuai dengan contoh print-excel.html (e.g., "Nov'24")
+function formatPeriode(periode) {
+    const date = new Date(periode);
+    const bulan = date.toLocaleString('default', { month: 'short', year: '2-digit' });
+    return `${bulan}`;
+}
+
+// Fungsi untuk memformat tanggal invoice sesuai dengan contoh print-excel.html (e.g., "05/11/2024")
+function formatTanggal(tglInvoice) {
+    const date = new Date(tglInvoice);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0'); // Bulan dimulai dari 0
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+}
 
 // Export to Word (.docx)
 exportWordBtn.addEventListener('click', () => {
@@ -336,24 +476,79 @@ exportWordBtn.addEventListener('click', () => {
                 </tr>
         `;
 
-        filteredData.forEach((data, index) => {
-            tableContent += `
-                <tr>
-                    <td>${index + 1}</td>
-                    <td>${data.periode}</td>
-                    <td>${data.namaPT}</td>
-                    <td>${data.supplier}</td>
-                    <td>${data.preOrder}</td>
-                    <td>${data.invoice}</td>
-                    <td>${data.tglInvoice}</td>
-                    <td>${formatRupiah(data.total.toString(), true)}</td>
-                    <td>${data.keterangan || '-'}</td>
-                    <td>${data.faktur || '-'}</td>
-                </tr>
-            `;
+        // Mengelompokkan data berdasarkan supplier
+        const groupedData = {};
+        filteredData.forEach((data) => {
+            if (!groupedData[data.supplier]) {
+                groupedData[data.supplier] = [];
+            }
+            groupedData[data.supplier].push(data);
         });
 
+        // Iterasi melalui setiap grup supplier
+        for (const [supplier, dataGroup] of Object.entries(groupedData)) {
+            let subtotal = 0;
+
+            dataGroup.forEach((data, index) => {
+                tableContent += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${formatPeriode(data.periode)}</td>
+                        <td>${data.namaPT}</td>
+                        <td>${data.supplier}</td>
+                        <td>${data.preOrder}</td>
+                        <td>${data.invoice}</td>
+                        <td>${formatTanggal(data.tglInvoice)}</td>
+                        <td>${formatRupiah(data.total.toString(), true)}</td>
+                        <td>${data.keterangan || '-'}</td>
+                        <td>${data.faktur || '-'}</td>
+                    </tr>
+                `;
+                subtotal += data.total;
+            });
+
+            // Tambahkan baris subtotal per supplier (hanya di kolom 'Total (Rp)')
+            tableContent += `
+                <tr>
+                    <td colspan="7"></td>
+                    <td><strong>${formatRupiah(subtotal.toString(), true)}</strong></td>
+                    <td colspan="2"></td>
+                </tr>
+            `;
+        }
+
         tableContent += `</table>`;
+
+        // Tambahkan footer tanda tangan
+        tableContent += `
+            <br/><br/>
+            <table style="width: 100%; text-align: center;">
+                <tr>
+                    <td>Pekanbaru, ${new Date().toLocaleDateString('id-ID')}</td>
+                </tr>
+                <tr>
+                    <td>Diterima Oleh,</td>
+                    <td></td> <!-- Gap column -->
+                    <td>TT Faktur Pajak,</td>
+                    <td></td> <!-- Gap column -->
+                    <td>Diserahkan Oleh,</td>
+                </tr>
+                <tr>
+                    <td style="height: 80px;"></td>
+                    <td></td>
+                    <td style="height: 80px;"></td>
+                    <td></td>
+                    <td style="height: 80px;"></td>
+                </tr>
+                <tr>
+                    <td>Qodari</td>
+                    <td></td>
+                    <td>Dina</td>
+                    <td></td>
+                    <td>Kantthi</td>
+                </tr>
+            </table>
+        `;
 
         // Create Blob
         const blob = new Blob(['\ufeff', tableContent], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
@@ -381,18 +576,55 @@ exportPDFBtn.addEventListener('click', () => {
         const doc = new jsPDF();
 
         // Prepare data
-        const rows = filteredData.map((data, index) => ([
-            index + 1,
-            data.periode,
-            data.namaPT,
-            data.supplier,
-            data.preOrder,
-            data.invoice,
-            data.tglInvoice,
-            formatRupiah(data.total.toString(), true),
-            data.keterangan || '-',
-            data.faktur || '-'
-        ]));
+        const rows = [];
+
+        // Mengelompokkan data berdasarkan supplier
+        const groupedData = {};
+        filteredData.forEach((data) => {
+            if (!groupedData[data.supplier]) {
+                groupedData[data.supplier] = [];
+            }
+            groupedData[data.supplier].push(data);
+        });
+
+        let grandTotal = 0;
+
+        // Iterasi melalui setiap grup supplier
+        for (const [supplier, dataGroup] of Object.entries(groupedData)) {
+            let subtotal = 0;
+
+            dataGroup.forEach((data, index) => {
+                rows.push([
+                    index + 1,
+                    formatPeriode(data.periode),
+                    data.namaPT,
+                    data.supplier,
+                    data.preOrder,
+                    data.invoice,
+                    formatTanggal(data.tglInvoice),
+                    formatRupiah(data.total.toString(), true),
+                    data.keterangan || '-',
+                    data.faktur || '-'
+                ]);
+                subtotal += data.total;
+            });
+
+            // Tambahkan baris subtotal per supplier (hanya di kolom 'Total (Rp)')
+            rows.push([
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                formatRupiah(subtotal.toString(), true),
+                '',
+                ''
+            ]);
+
+            grandTotal += subtotal;
+        }
 
         // Add title
         doc.setFontSize(15);
@@ -400,12 +632,38 @@ exportPDFBtn.addEventListener('click', () => {
 
         // Add table
         doc.autoTable({
-            head: [['Nomor', 'Periode', 'Nama PT', 'Supplier', 'PreOrder', 'Invoice', 'Tanggal Invoice', 'Total (Rp)', 'Keterangan', 'Faktur']],
+            head: [['Nomor', 'Periode', 'Nama PT', 'Supplier', 'PreOrder', 'Invoice', 'Tgl Inv', 'Total (Rp)', 'Keterangan', 'Faktur']],
             body: rows,
             startY: 20,
             styles: { fontSize: 8 },
             headStyles: { fillColor: [40, 167, 69] },
             theme: 'striped'
+        });
+
+        // Tambahkan footer tanda tangan
+        const finalY = doc.lastAutoTable.finalY + 10;
+        doc.text(`Pekanbaru, ${new Date().toLocaleDateString('id-ID')}`, 14, finalY);
+
+        doc.autoTable({
+            startY: finalY + 10,
+            body: [
+                ['Diterima Oleh,', '', 'TT Faktur Pajak,', '', 'Diserahkan Oleh,'],
+                ['', '', '', '', ''],
+                ['', '', '', '', ''],
+                ['', '', '', '', ''],
+                ['Qodari', '', 'Dina', '', 'Kantthi']
+            ],
+            styles: { halign: 'center', valign: 'middle' },
+            tableWidth: '100%',
+            columnStyles: {
+                0: { cellWidth: '20%' },
+                1: { cellWidth: '10%' },
+                2: { cellWidth: '20%' },
+                3: { cellWidth: '10%' },
+                4: { cellWidth: '20%' }
+            },
+            head: [['', '', '', '', '']],
+            foot: [['', '', '', '', '']]
         });
 
         // Save PDF
