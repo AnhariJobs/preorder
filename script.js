@@ -26,11 +26,11 @@ const hargaBarangInput = document.getElementById('hargaBarang');
 const hasilPajakDiv = document.getElementById('hasilPajak');
 const preOrderTableBody = document.getElementById('preOrderTbody');
 const exportExcelBtn = document.getElementById('exportExcel');
-const exportWordBtn = document.getElementById('exportWord');
-const exportPDFBtn = document.getElementById('exportPDF');
 const searchNamaPT = document.getElementById('searchNamaPT');
 const searchPeriode = document.getElementById('searchPeriode');
 const clearFiltersBtn = document.getElementById('clearFilters');
+const headerCheckbox = document.getElementById('headerCheckbox');
+const selectAllBtn = document.getElementById('selectAll');
 
 // Pagination Elements
 const prevPageBtn = document.getElementById('prevPage');
@@ -52,12 +52,13 @@ let currentEditId = null;
 let originalEditData = null;
 
 // Data Storage
-let allData = []; // All fetched data
-let filteredData = []; // Data after filtering
+let allData = [];
+let filteredData = [];
+let selectedRows = new Set();
 let currentPage = 1;
 const rowsPerPage = 10;
 
-// Function to format number to Rupiah with '.' as thousand separator and ',' as decimal separator
+// Function to format number to Rupiah
 function formatRupiah(value, withDecimal = false) {
     let number = Number(value);
     if (isNaN(number)) return 'Rp.0' + (withDecimal ? ',00' : '');
@@ -68,6 +69,23 @@ function formatRupiah(value, withDecimal = false) {
     }
 }
 
+// Function to format periode
+function formatPeriode(periode) {
+    const date = new Date(periode);
+    const bulan = date.toLocaleString('default', { month: 'short' });
+    const tahun = date.getFullYear().toString().slice(-2);
+    return `${bulan}'${tahun}`;
+}
+
+// Function to format tanggal
+function formatTanggal(tglInvoice) {
+    const date = new Date(tglInvoice);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+}
+
 // Auto-calculate PPN when 'hargaBarang' changes
 hargaBarangInput.addEventListener('input', calculateTax);
 
@@ -75,7 +93,7 @@ hargaBarangInput.addEventListener('input', calculateTax);
 function calculateTax() {
     const hargaBarang = Number(hargaBarangInput.value);
     if (!isNaN(hargaBarang) && hargaBarang > 0) {
-        const hasilPajak = (hargaBarang / 1.11).toFixed(2); // Formula: harga / 1.11
+        const hasilPajak = (hargaBarang / 1.11).toFixed(2);
         hasilPajakDiv.innerHTML = `Hasil PPN: <span class="text-teal-600">${formatRupiah(hasilPajak, true)}</span>`;
     } else {
         hasilPajakDiv.innerHTML = "Hasil PPN: <span class='text-teal-600'>Rp.0,00</span>";
@@ -93,7 +111,6 @@ function showNotification(message, type = 'success') {
         notification.firstElementChild.classList.add('bg-red-500');
     }
     notification.classList.remove('hidden');
-    // Restart the timeout if the notification is already visible
     clearTimeout(notification.timeout);
     notification.timeout = setTimeout(() => {
         notification.classList.add('hidden');
@@ -111,44 +128,47 @@ function clearForm() {
     hasilPajakDiv.innerHTML = "Hasil PPN: <span class='text-teal-600'>Rp.0,00</span>";
 }
 
+// Function to validate form data
+function validateFormData(data) {
+    const required = ['periode', 'namaPT', 'supplier', 'preOrder', 'invoice', 'tglInvoice'];
+    for (const field of required) {
+        if (!data[field]?.trim()) return false;
+    }
+    if (isNaN(data.total) || data.total < 0) return false;
+    return true;
+}
+
 // Function to add data to Firestore
 submitBtn.addEventListener('click', async (e) => {
     e.preventDefault();
-    const periode = preOrderForm.periode.value;
-    const namaPT = preOrderForm.namaPT.value.trim();
-    const supplier = preOrderForm.supplier.value.trim();
-    const preOrder = preOrderForm.preOrder.value.trim();
-    const invoice = preOrderForm.invoice.value.trim();
-    const tglInvoice = preOrderForm.tglInvoice.value;
-    const total = Number(preOrderForm.total.value);
-    const keterangan = preOrderForm.keterangan.value.trim();
-    const faktur = preOrderForm.faktur.value.trim();
-    const tanggalInput = serverTimestamp();
+    
+    const formData = {
+        periode: preOrderForm.periode.value,
+        namaPT: preOrderForm.namaPT.value.trim(),
+        supplier: preOrderForm.supplier.value.trim(),
+        preOrder: preOrderForm.preOrder.value.trim(),
+        invoice: preOrderForm.invoice.value.trim(),
+        tglInvoice: preOrderForm.tglInvoice.value,
+        total: Number(preOrderForm.total.value),
+        keterangan: preOrderForm.keterangan.value.trim(),
+        faktur: preOrderForm.faktur.value.trim()
+    };
 
-    // Validasi di JavaScript untuk memastikan semua field terisi
-    if (!periode || !namaPT || !supplier || !preOrder || !invoice || !tglInvoice || isNaN(total) || total < 0 || !keterangan || !faktur) {
+    if (!validateFormData(formData)) {
         showNotification('Silakan isi semua field dengan benar sebelum menyimpan data.', 'error');
         return;
     }
 
     try {
         await addDoc(collection(db, "preOrderData"), {
-            periode,
-            namaPT,
-            supplier,
-            preOrder,
-            invoice,
-            tglInvoice,
-            total,
-            keterangan,
-            faktur,
-            tanggalInput
+            ...formData,
+            tanggalInput: serverTimestamp()
         });
         clearForm();
         showNotification('Data berhasil disimpan.', 'success');
     } catch (error) {
         console.error("Error adding document: ", error);
-        showNotification('Gagal menyimpan data.', 'error');
+        showNotification('Gagal menyimpan data: ' + error.message, 'error');
     }
 });
 
@@ -176,6 +196,10 @@ function renderTable() {
         const tr = document.createElement('tr');
         tr.classList.add('hover:bg-teal-50', 'transition-all');
         tr.innerHTML = `
+            <td class="py-4 px-6 border-b">
+                <input type="checkbox" class="row-checkbox form-checkbox h-4 w-4 text-teal-600 transition duration-150 ease-in-out" 
+                       data-id="${data.id}" ${selectedRows.has(data.id) ? 'checked' : ''}>
+            </td>
             <td class="py-4 px-6 border-b">${nomor}</td>
             <td class="py-4 px-6 border-b">${data.periode}</td>
             <td class="py-4 px-6 border-b">${data.namaPT}</td>
@@ -187,8 +211,8 @@ function renderTable() {
             <td class="py-4 px-6 border-b">${data.keterangan || '-'}</td>
             <td class="py-4 px-6 border-b">${data.faktur || '-'}</td>
             <td class="py-4 px-6 border-b flex gap-3">
-                <button class="edit-btn bg-yellow-400 hover:bg-yellow-500 transition-all transform hover:scale-105 px-3 py-1 rounded">Edit</button>
-                <button class="delete-btn bg-red-500 hover:bg-red-600 transition-all transform hover:scale-105 px-3 py-1 rounded">Hapus</button>
+                <button class="edit-btn bg-yellow-400 hover:bg-yellow-500 text-white transition-all transform hover:scale-105 px-3 py-1 rounded">Edit</button>
+                <button class="delete-btn bg-red-500 hover:bg-red-600 text-white transition-all transform hover:scale-105 px-3 py-1 rounded">Hapus</button>
             </td>
         `;
         preOrderTableBody.appendChild(tr);
@@ -200,7 +224,6 @@ function renderTable() {
     prevPageBtn.disabled = currentPage === 1;
     nextPageBtn.disabled = currentPage === Math.ceil(filteredData.length / rowsPerPage);
 
-    // Style disabled buttons
     if (prevPageBtn.disabled) {
         prevPageBtn.classList.add('opacity-50', 'cursor-not-allowed');
     } else {
@@ -213,7 +236,29 @@ function renderTable() {
         nextPageBtn.classList.remove('opacity-50', 'cursor-not-allowed');
     }
 
-    // Attach event listeners to Edit and Delete buttons
+    // Attach event listeners
+    attachCheckboxListeners();
+    attachEditDeleteListeners(pageData);
+}
+
+// Function to attach checkbox event listeners
+function attachCheckboxListeners() {
+    const checkboxes = document.querySelectorAll('.row-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', (e) => {
+            const id = e.target.dataset.id;
+            if (e.target.checked) {
+                selectedRows.add(id);
+            } else {
+                selectedRows.delete(id);
+            }
+            updateHeaderCheckbox();
+        });
+    });
+}
+
+// Function to attach edit and delete event listeners
+function attachEditDeleteListeners(pageData) {
     const editButtons = document.querySelectorAll('.edit-btn');
     const deleteButtons = document.querySelectorAll('.delete-btn');
 
@@ -231,6 +276,35 @@ function renderTable() {
         });
     });
 }
+
+// Function to update header checkbox state
+function updateHeaderCheckbox() {
+    const checkboxes = document.querySelectorAll('.row-checkbox');
+    const checkedCount = document.querySelectorAll('.row-checkbox:checked').length;
+    headerCheckbox.checked = checkedCount === checkboxes.length;
+    headerCheckbox.indeterminate = checkedCount > 0 && checkedCount < checkboxes.length;
+}
+
+// Header checkbox event listener
+headerCheckbox.addEventListener('change', (e) => {
+    const checkboxes = document.querySelectorAll('.row-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = e.target.checked;
+        const id = checkbox.dataset.id;
+        if (e.target.checked) {
+            selectedRows.add(id);
+        } else {
+            selectedRows.delete(id);
+        }
+    });
+});
+
+// Select All button event listener
+selectAllBtn.addEventListener('click', () => {
+    selectedRows = new Set(filteredData.map(data => data.id));
+    renderTable();
+    updateHeaderCheckbox();
+});
 
 // Pagination Controls
 prevPageBtn.addEventListener('click', () => {
@@ -270,23 +344,25 @@ clearFiltersBtn.addEventListener('click', () => {
     showNotification('Filter telah dihapus.', 'success');
 });
 
-// Export to Excel (.xlsx) menggunakan ExcelJS
+// Export to Excel (.xlsx) with selected rows
 exportExcelBtn.addEventListener('click', async () => {
+    if (selectedRows.size === 0) {
+        showNotification('Pilih setidaknya satu data untuk diekspor.', 'error');
+        return;
+    }
+
     try {
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('PreOrderData');
 
-        // Menambahkan 2 baris judul di atas tabel
-        // Baris 1: Kosong
+        // Add title rows
         worksheet.addRow(['']);
-        // Baris 2: Judul Tabel
         const titleRow = worksheet.addRow(['TANDA TERIMA PREORDER']);
-        // Menggabungkan sel dari A2 hingga J2 (10 kolom)
         worksheet.mergeCells('A2:J2');
         titleRow.getCell(1).font = { size: 16, bold: true };
         titleRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
 
-        // Menambahkan baris header di baris 3
+        // Add header row
         const headerRow = worksheet.addRow(['No', 'Periode', 'PT', 'Supplier', 'No. Po', 'No. Inv', 'Tgl Inv', 'Total (Rp)', 'KET', 'FP']);
         headerRow.font = { bold: true };
         headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -300,14 +376,17 @@ exportExcelBtn.addEventListener('click', async () => {
             cell.fill = {
                 type: 'pattern',
                 pattern: 'solid',
-                fgColor: { argb: 'FFE0F2F1' } // Warna latar belakang header
+                fgColor: { argb: 'FFE0F2F1' }
             };
             cell.font = { color: { argb: 'FF00695C' }, bold: true };
         });
 
-        // Mengelompokkan data berdasarkan PT dan Supplier
+        // Filter and sort selected data
+        const selectedData = filteredData.filter(data => selectedRows.has(data.id));
+
+        // Group data by PT and Supplier
         const groupedData = {};
-        filteredData.forEach((data) => {
+        selectedData.forEach((data) => {
             const key = `${data.namaPT}|${data.supplier}`;
             if (!groupedData[key]) {
                 groupedData[key] = [];
@@ -317,14 +396,12 @@ exportExcelBtn.addEventListener('click', async () => {
 
         let grandTotal = 0;
 
-        // Iterasi melalui setiap grup PT dan Supplier
+        // Add data rows by group
         for (const [key, dataGroup] of Object.entries(groupedData)) {
             const [namaPT, supplier] = key.split('|');
             let subtotal = 0;
 
             dataGroup.forEach((data, index) => {
-                // Jika ini adalah baris pertama dalam grup, tampilkan PT dan Supplier
-                // Jika bukan, biarkan kolom PT dan Supplier kosong
                 const rowValues = [
                     index === 0 ? 1 : '',
                     formatPeriode(data.periode),
@@ -339,8 +416,6 @@ exportExcelBtn.addEventListener('click', async () => {
                 ];
 
                 const row = worksheet.addRow(rowValues);
-
-                // Mengatur alignment ke tengah
                 row.eachCell((cell) => {
                     cell.alignment = { horizontal: 'center', vertical: 'middle' };
                 });
@@ -348,7 +423,7 @@ exportExcelBtn.addEventListener('click', async () => {
                 subtotal += data.total;
             });
 
-            // Tambahkan baris subtotal per grup PT dan Supplier (hanya di kolom 'Total (Rp)')
+            // Add subtotal row
             const subtotalRow = worksheet.addRow(['', '', '', '', '', '', '', subtotal, '', '']);
             subtotalRow.font = { bold: true };
             subtotalRow.getCell(8).numFmt = '#,##0';
@@ -360,31 +435,28 @@ exportExcelBtn.addEventListener('click', async () => {
             grandTotal += subtotal;
         }
 
-        // Tambahkan beberapa baris kosong sebelum footer
+        // Add signature section
         worksheet.addRow(['']);
         worksheet.addRow(['']);
 
-        // Tambahkan tanggal di kolom 'FP'
         const today = new Date();
         const formattedDate = `${today.getDate().toString().padStart(2, '0')}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getFullYear()}`;
         const dateRow = worksheet.addRow(['', '', '', '', '', '', '', '', '', `Pekanbaru, ${formattedDate}`]);
         dateRow.alignment = { horizontal: 'center', vertical: 'middle' };
 
-        // Tambahkan row untuk label tanda tangan dengan jarak 1 kolom antar label
         const signatureLabelsRow = worksheet.addRow(['', '', '', '', '', 'Diterima Oleh,', '', 'TT Faktur Pajak,', '', 'Diserahkan Oleh,']);
         signatureLabelsRow.font = { bold: true };
         signatureLabelsRow.alignment = { horizontal: 'center', vertical: 'middle' };
 
-        // Tambahkan 4 baris kosong sebelum nama penandatangan
+        // Add signature spaces
         for (let i = 0; i < 4; i++) {
             worksheet.addRow(['', '', '', '', '', '', '', '', '', '']);
         }
 
-        // Tambahkan row dengan nama penanda tangan dengan jarak 1 kolom antar nama
         const signatureNamesRow = worksheet.addRow(['', '', '', '', '', 'Qodari', '', 'Dina', '', 'Kantthi']);
         signatureNamesRow.alignment = { horizontal: 'center', vertical: 'middle' };
 
-        // Mengatur lebar kolom agar sesuai dengan isi
+        // Adjust column widths
         worksheet.columns.forEach(column => {
             let maxLength = 0;
             column.eachCell({ includeEmpty: true }, cell => {
@@ -394,14 +466,11 @@ exportExcelBtn.addEventListener('click', async () => {
                     maxLength = columnLength;
                 }
             });
-            // Set lebar minimum 10, atau panjang maksimum + 2
             column.width = maxLength < 10 ? 10 : maxLength + 2;
         });
 
-        // Simpan workbook ke buffer
+        // Save workbook
         const buffer = await workbook.xlsx.writeBuffer();
-
-        // Buat Blob dan trigger download
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -418,254 +487,16 @@ exportExcelBtn.addEventListener('click', async () => {
     }
 });
 
-// Fungsi untuk memformat periode sesuai dengan contoh print-excel.html (e.g., "Nov'24")
-function formatPeriode(periode) {
-    const date = new Date(periode);
-    const bulan = date.toLocaleString('default', { month: 'short', year: '2-digit' });
-    return `${bulan}`;
-}
-
-// Fungsi untuk memformat tanggal invoice sesuai dengan contoh print-excel.html (e.g., "05/11/2024")
-function formatTanggal(tglInvoice) {
-    const date = new Date(tglInvoice);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0'); // Bulan dimulai dari 0
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-}
-
-// Export to Word (.docx)
-exportWordBtn.addEventListener('click', () => {
-    try {
-        // Prepare table HTML
-        let tableContent = `
-            <table border="1" cellspacing="0" cellpadding="5">
-                <tr>
-                    <th>Nomor</th>
-                    <th>Periode</th>
-                    <th>Nama PT</th>
-                    <th>Supplier</th>
-                    <th>PreOrder</th>
-                    <th>Invoice</th>
-                    <th>Tanggal Invoice</th>
-                    <th>Total (Rp)</th>
-                    <th>Keterangan</th>
-                    <th>Faktur</th>
-                </tr>
-        `;
-
-        // Mengelompokkan data berdasarkan PT dan Supplier
-        const groupedData = {};
-        filteredData.forEach((data) => {
-            const key = `${data.namaPT}|${data.supplier}`;
-            if (!groupedData[key]) {
-                groupedData[key] = [];
-            }
-            groupedData[key].push(data);
-        });
-
-        // Iterasi melalui setiap grup PT dan Supplier
-        for (const [key, dataGroup] of Object.entries(groupedData)) {
-            const [namaPT, supplier] = key.split('|');
-            let subtotal = 0;
-
-            dataGroup.forEach((data, index) => {
-                tableContent += `
-                    <tr>
-                        <td>${index === 0 ? 1 : ''}</td>
-                        <td>${formatPeriode(data.periode)}</td>
-                        <td>${index === 0 ? namaPT : ''}</td>
-                        <td>${index === 0 ? supplier : ''}</td>
-                        <td>${data.preOrder}</td>
-                        <td>${data.invoice}</td>
-                        <td>${formatTanggal(data.tglInvoice)}</td>
-                        <td>${formatRupiah(data.total.toString(), true)}</td>
-                        <td>${data.keterangan || '-'}</td>
-                        <td>${data.faktur || '-'}</td>
-                    </tr>
-                `;
-                subtotal += data.total;
-            });
-
-            // Tambahkan baris subtotal per grup PT dan Supplier (hanya di kolom 'Total (Rp)')
-            tableContent += `
-                <tr>
-                    <td colspan="7"></td>
-                    <td><strong>${formatRupiah(subtotal.toString(), true)}</strong></td>
-                    <td colspan="2"></td>
-                </tr>
-            `;
-        }
-
-        tableContent += `</table>`;
-
-        // Tambahkan footer tanda tangan
-        tableContent += `
-            <br/><br/>
-            <table style="width: 100%; text-align: center;">
-                <tr>
-                    <td>Pekanbaru, ${new Date().toLocaleDateString('id-ID')}</td>
-                </tr>
-                <tr>
-                    <td>Diterima Oleh,</td>
-                    <td></td> <!-- Gap column -->
-                    <td>TT Faktur Pajak,</td>
-                    <td></td> <!-- Gap column -->
-                    <td>Diserahkan Oleh,</td>
-                </tr>
-                <tr>
-                    <td style="height: 80px;"></td>
-                    <td></td>
-                    <td style="height: 80px;"></td>
-                    <td></td>
-                    <td style="height: 80px;"></td>
-                </tr>
-                <tr>
-                    <td>Qodari</td>
-                    <td></td>
-                    <td>Dina</td>
-                    <td></td>
-                    <td>Kantthi</td>
-                </tr>
-            </table>
-        `;
-
-        // Create Blob
-        const blob = new Blob(['\ufeff', tableContent], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-        const url = URL.createObjectURL(blob);
-
-        // Create link and trigger download
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = "preOrderData.docx";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        showNotification('Data berhasil diekspor ke Word.', 'success');
-    } catch (error) {
-        console.error("Error exporting to Word: ", error);
-        showNotification('Gagal mengekspor data ke Word.', 'error');
-    }
-});
-
-// Export to PDF (.pdf)
-exportPDFBtn.addEventListener('click', () => {
-    try {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-
-        // Add title
-        doc.setFontSize(15);
-        doc.text("Data PreOrder", 14, 16);
-
-        // Prepare data
-        const rows = [];
-
-        // Mengelompokkan data berdasarkan PT dan Supplier
-        const groupedData = {};
-        filteredData.forEach((data) => {
-            const key = `${data.namaPT}|${data.supplier}`;
-            if (!groupedData[key]) {
-                groupedData[key] = [];
-            }
-            groupedData[key].push(data);
-        });
-
-        let grandTotal = 0;
-
-        // Iterasi melalui setiap grup PT dan Supplier
-        for (const [key, dataGroup] of Object.entries(groupedData)) {
-            const [namaPT, supplier] = key.split('|');
-            let subtotal = 0;
-
-            dataGroup.forEach((data, index) => {
-                rows.push([
-                    index === 0 ? 1 : '',
-                    formatPeriode(data.periode),
-                    index === 0 ? namaPT : '',
-                    index === 0 ? supplier : '',
-                    data.preOrder,
-                    data.invoice,
-                    formatTanggal(data.tglInvoice),
-                    formatRupiah(data.total.toString(), true),
-                    data.keterangan || '-',
-                    data.faktur || '-'
-                ]);
-                subtotal += data.total;
-            });
-
-            // Tambahkan baris subtotal per grup PT dan Supplier (hanya di kolom 'Total (Rp)')
-            rows.push([
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                formatRupiah(subtotal.toString(), true),
-                '',
-                ''
-            ]);
-
-            grandTotal += subtotal;
-        }
-
-        // Add table
-        doc.autoTable({
-            head: [['No', 'Periode', 'PT', 'Supplier', 'PreOrder', 'Invoice', 'Tgl Inv', 'Total (Rp)', 'Keterangan', 'Faktur']],
-            body: rows,
-            startY: 20,
-            styles: { fontSize: 8, halign: 'center', valign: 'middle' },
-            headStyles: { fillColor: [40, 167, 69], halign: 'center', valign: 'middle' },
-            theme: 'striped'
-        });
-
-        // Tambahkan footer tanda tangan
-        const finalY = doc.lastAutoTable.finalY + 10;
-        doc.text(`Pekanbaru, ${new Date().toLocaleDateString('id-ID')}`, 14, finalY);
-
-        doc.autoTable({
-            startY: finalY + 10,
-            body: [
-                ['Diterima Oleh,', '', 'TT Faktur Pajak,', '', 'Diserahkan Oleh,'],
-                ['', '', '', '', ''],
-                ['', '', '', '', ''],
-                ['', '', '', '', ''],
-                ['Qodari', '', 'Dina', '', 'Kantthi']
-            ],
-            styles: { halign: 'center', valign: 'middle', fontStyle: 'bold' },
-            tableWidth: '100%',
-            columnStyles: {
-                0: { cellWidth: '20%' },
-                1: { cellWidth: '10%' },
-                2: { cellWidth: '20%' },
-                3: { cellWidth: '10%' },
-                4: { cellWidth: '20%' }
-            },
-            head: [['', '', '', '', '']],
-            foot: [['', '', '', '', '']]
-        });
-
-        // Save PDF
-        doc.save('preOrderData.pdf');
-        showNotification('Data berhasil diekspor ke PDF.', 'success');
-    } catch (error) {
-        console.error("Error exporting to PDF: ", error);
-        showNotification('Gagal mengekspor data ke PDF.', 'error');
-    }
-});
-
 // Function to delete data
 async function deleteData(id) {
     if (confirm("Apakah Anda yakin ingin menghapus data ini?")) {
         try {
             await deleteDoc(doc(db, "preOrderData", id));
+            selectedRows.delete(id);
             showNotification('Data berhasil dihapus.', 'success');
         } catch (error) {
             console.error("Error deleting document: ", error);
-            showNotification('Gagal menghapus data.', 'error');
+            showNotification('Gagal menghapus data: ' + error.message, 'error');
         }
     }
 }
@@ -674,7 +505,6 @@ async function deleteData(id) {
 async function openEditModal(id, data) {
     currentEditId = id;
 
-    // Fetch original data from Firestore to ensure up-to-date data
     try {
         const docRef = doc(db, "preOrderData", id);
         const docSnap = await getDoc(docRef);
@@ -686,10 +516,11 @@ async function openEditModal(id, data) {
         }
     } catch (error) {
         console.error("Error fetching document: ", error);
-        showNotification('Gagal mengambil data asli.', 'error');
+        showNotification('Gagal mengambil data asli: ' + error.message, 'error');
         return;
     }
 
+    // Populate edit form
     document.getElementById('editPeriode').value = data.periode;
     document.getElementById('editNamaPT').value = data.namaPT;
     document.getElementById('editSupplier').value = data.supplier;
@@ -699,17 +530,11 @@ async function openEditModal(id, data) {
     document.getElementById('editTotal').value = data.total;
     document.getElementById('editKeterangan').value = data.keterangan || '';
     document.getElementById('editFaktur').value = data.faktur || '';
+    
     editModal.classList.remove('hidden');
 }
 
-// Function to close edit modal
-cancelEditBtn.addEventListener('click', () => {
-    editModal.classList.add('hidden');
-    editForm.reset();
-    originalEditData = null;
-});
-
-// Handle edit form submission
+// Function to handle edit form submission
 editForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -718,33 +543,26 @@ editForm.addEventListener('submit', async (e) => {
         return;
     }
 
-    const periode = editForm.editPeriode.value;
-    const namaPT = editForm.editNamaPT.value.trim();
-    const supplier = editForm.editSupplier.value.trim();
-    const preOrder = editForm.editPreOrder.value.trim();
-    const invoice = editForm.editInvoice.value.trim();
-    const tglInvoice = editForm.editTglInvoice.value;
-    const total = Number(editForm.editTotal.value);
-    const keterangan = editForm.editKeterangan.value.trim();
-    const faktur = editForm.editFaktur.value.trim();
+    const editedData = {
+        periode: editForm.editPeriode.value,
+        namaPT: editForm.editNamaPT.value.trim(),
+        supplier: editForm.editSupplier.value.trim(),
+        preOrder: editForm.editPreOrder.value.trim(),
+        invoice: editForm.editInvoice.value.trim(),
+        tglInvoice: editForm.editTglInvoice.value,
+        total: Number(editForm.editTotal.value),
+        keterangan: editForm.editKeterangan.value.trim(),
+        faktur: editForm.editFaktur.value.trim()
+    };
 
-    // Validasi di JavaScript untuk memastikan semua field terisi
-    if (!periode || !namaPT || !supplier || !preOrder || !invoice || !tglInvoice || isNaN(total) || total < 0 || !keterangan || !faktur) {
+    if (!validateFormData(editedData)) {
         showNotification('Silakan isi semua field dengan benar sebelum memperbarui data.', 'error');
         return;
     }
 
-    // Cek apakah ada perubahan data
-    const isDataChanged = (
-        periode !== originalEditData.periode ||
-        namaPT !== originalEditData.namaPT ||
-        supplier !== originalEditData.supplier ||
-        preOrder !== originalEditData.preOrder ||
-        invoice !== originalEditData.invoice ||
-        tglInvoice !== originalEditData.tglInvoice ||
-        total !== originalEditData.total ||
-        keterangan !== originalEditData.keterangan ||
-        faktur !== originalEditData.faktur
+    // Check for changes
+    const isDataChanged = Object.keys(editedData).some(key => 
+        editedData[key] !== originalEditData[key]
     );
 
     if (!isDataChanged) {
@@ -754,25 +572,22 @@ editForm.addEventListener('submit', async (e) => {
 
     try {
         const docRef = doc(db, "preOrderData", currentEditId);
-        await updateDoc(docRef, {
-            periode,
-            namaPT,
-            supplier,
-            preOrder,
-            invoice,
-            tglInvoice,
-            total,
-            keterangan,
-            faktur
-        });
+        await updateDoc(docRef, editedData);
         editModal.classList.add('hidden');
         editForm.reset();
         originalEditData = null;
         showNotification('Data berhasil diperbarui.', 'success');
     } catch (error) {
         console.error("Error updating document: ", error);
-        showNotification('Gagal memperbarui data.', 'error');
+        showNotification('Gagal memperbarui data: ' + error.message, 'error');
     }
+});
+
+// Cancel edit button handler
+cancelEditBtn.addEventListener('click', () => {
+    editModal.classList.add('hidden');
+    editForm.reset();
+    originalEditData = null;
 });
 
 // Search Filters with Debounce
@@ -785,7 +600,8 @@ function debounce(func, delay) {
 searchNamaPT.addEventListener('input', () => {
     debounce(applyFilters, 300);
 });
+
 searchPeriode.addEventListener('change', applyFilters);
 
-// Fetch data on load
+// Initialize data fetch
 fetchData();
