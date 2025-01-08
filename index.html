@@ -5,42 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PreOrder Form & Kalkulator Pajak PPN</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Heroicons for pagination buttons -->
     <script src="https://unpkg.com/heroicons@2.0.13/dist/outline.min.js"></script>
-    
-    <!-- For jsPDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    
-    <!-- jsPDF AutoTable plugin -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <style>
-        /* Custom styles for notification */      
         #notification {
             transition: opacity 0.5s ease-in-out;
         }
         #editModal {
-            max-height: 90vh; /* Maksimum tinggi modal 90% dari tinggi layar */
-            overflow-y: auto; /* Menambahkan scroll vertikal jika konten lebih tinggi dari 90vh */
+            max-height: 90vh;
+            overflow-y: auto;
         }
-        
         #editModal > .bg-white {
-            max-height: 100%; /* Pastikan modal bagian dalam dapat mengisi 100% dari ruang yang tersedia */
-            overflow-y: auto; /* Tambahkan scroll vertikal di dalam modal */
+            max-height: 100%;
+            overflow-y: auto;
         }
-        
-        /* Responsif untuk layar kecil */
         @media (max-width: 640px) {
             #editModal > .bg-white {
-                width: 90%; /* Untuk layar kecil, modal akan mengambil 90% dari lebar layar */
+                width: 90%;
             }
         }
     </style>
 </head>
 <body class="bg-gradient-to-r from-teal-50 to-blue-100 text-gray-800 font-sans">
-
     <div class="container mx-auto px-6 py-12">
-
         <!-- Notification Popup -->
         <div id="notification" class="fixed top-4 right-4 z-50 hidden">
             <div class="bg-green-500 text-white px-4 py-3 rounded shadow-md flex items-center">
@@ -51,69 +39,76 @@
 
         <!-- Title -->
         <header class="text-center mb-12">
-            <h1 class="text-5xl font-extrabold text-teal-600 mb-4 animate__animated animate__fadeIn animate__delay-1s">PreOrder System</h1>
-            <p class="text-xl text-gray-700 animate__animated animate__fadeIn animate__delay-2s">Kelola data PreOrder dan hitung Pajak PPN secara efisien dan modern</p>
+            <h1 class="text-5xl font-extrabold text-teal-600 mb-4 animate__animated animate__fadeIn animate__delay-1s">
+                PreOrder System
+            </h1>
+            <p class="text-xl text-gray-700 animate__animated animate__fadeIn animate__delay-2s">
+                Kelola data PreOrder dan hitung Pajak PPN secara efisien dan modern
+            </p>
         </header>
 
         <!-- Form PreOrder -->
         <section class="bg-white shadow-xl rounded-xl p-8">
             <h2 class="text-3xl font-semibold text-gray-800 mb-6">Form PreOrder</h2>
             <form id="preOrderForm" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Periode Input -->
                 <div>
                     <label for="periode" class="block text-gray-700 mb-2">Periode (Bulan & Tahun)</label>
-                    <input type="month" id="periode" name="periode" required class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300" placeholder="Periode (Bulan & Tahun)">
+                    <input type="month" id="periode" name="periode" required 
+                           class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
                 </div>
                 
-                <!-- Nama PT Input -->
                 <div>
                     <label for="namaPT" class="block text-gray-700 mb-2">Nama PT</label>
-                    <input type="text" id="namaPT" name="namaPT" required placeholder="Masukkan Nama PT" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
+                    <input type="text" id="namaPT" name="namaPT" required placeholder="Masukkan Nama PT" 
+                           class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
                 </div>
                 
-                <!-- Supplier Input -->
                 <div>
                     <label for="supplier" class="block text-gray-700 mb-2">Supplier</label>
-                    <input type="text" id="supplier" name="supplier" required placeholder="Masukkan Nama Supplier" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
+                    <input type="text" id="supplier" name="supplier" required placeholder="Masukkan Nama Supplier" 
+                           class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
                 </div>
                 
-                <!-- PreOrder Input -->
                 <div>
                     <label for="preOrder" class="block text-gray-700 mb-2">PreOrder</label>
-                    <input type="text" id="preOrder" name="preOrder" required placeholder="Masukkan Nomor PreOrder" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
+                    <input type="text" id="preOrder" name="preOrder" required placeholder="Masukkan Nomor PreOrder" 
+                           class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
                 </div>
                 
-                <!-- Invoice Input -->
                 <div>
                     <label for="invoice" class="block text-gray-700 mb-2">Invoice</label>
-                    <input type="text" id="invoice" name="invoice" required placeholder="Masukkan Nomor Invoice" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
+                    <input type="text" id="invoice" name="invoice" required placeholder="Masukkan Nomor Invoice" 
+                           class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
                 </div>
                 
-                <!-- Tanggal Invoice Input -->
                 <div>
                     <label for="tglInvoice" class="block text-gray-700 mb-2">Tanggal Invoice</label>
-                    <input type="date" id="tglInvoice" name="tglInvoice" required placeholder="Pilih Tanggal Invoice" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
+                    <input type="date" id="tglInvoice" name="tglInvoice" required 
+                           class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
                 </div>
                 
-                <!-- Total Input -->
                 <div>
                     <label for="total" class="block text-gray-700 mb-2">Total (Rp)</label>
-                    <input type="number" id="total" name="total" required placeholder="Masukkan Total (Rp)" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300" min="0" step="0.01">
+                    <input type="number" id="total" name="total" required placeholder="Masukkan Total (Rp)" 
+                           class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300" 
+                           min="0" step="0.01">
                 </div>
                 
-                <!-- Keterangan Input -->
                 <div>
                     <label for="keterangan" class="block text-gray-700 mb-2">Keterangan</label>
-                    <input type="text" id="keterangan" name="keterangan" required placeholder="Masukkan Keterangan" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
+                    <input type="text" id="keterangan" name="keterangan" required placeholder="Masukkan Keterangan" 
+                           class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
                 </div>
                 
-                <!-- Faktur Input -->
                 <div>
                     <label for="faktur" class="block text-gray-700 mb-2">Faktur</label>
-                    <input type="text" id="faktur" name="faktur" required placeholder="Masukkan Nomor Faktur" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
+                    <input type="text" id="faktur" name="faktur" required placeholder="Masukkan Nomor Faktur" 
+                           class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
                 </div>
             </form>
-            <button id="submitBtn" type="submit" class="w-full mt-6 bg-teal-600 text-white py-3 rounded-lg shadow-xl hover:bg-teal-700 transition-all transform hover:scale-105">
+            <button id="submitBtn" type="submit" 
+                    class="w-full mt-6 bg-teal-600 text-white py-3 rounded-lg shadow-xl hover:bg-teal-700 
+                           transition-all transform hover:scale-105">
                 Simpan Data
             </button>
         </section>
@@ -122,7 +117,9 @@
         <section class="mt-12 bg-white shadow-xl rounded-xl p-8">
             <h2 class="text-3xl font-semibold text-gray-800 mb-6">Kalkulator Pajak PPN</h2>
             <div class="flex flex-col sm:flex-row items-center gap-4">
-                <input type="number" id="hargaBarang" placeholder="Masukkan Harga Barang (Rp)" class="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300" min="0" step="0.01">
+                <input type="number" id="hargaBarang" placeholder="Masukkan Harga Barang (Rp)" 
+                       class="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300" 
+                       min="0" step="0.01">
             </div>
             <div id="hasilPajak" class="mt-6 text-2xl font-semibold text-gray-700">
                 Hasil PPN: <span class="text-teal-600">Rp.0,00</span>
@@ -135,17 +132,32 @@
             
             <!-- Filter Pencarian -->
             <div class="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <input type="text" id="searchNamaPT" placeholder="Cari Berdasarkan Nama PT" class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
-                <input type="month" id="searchPeriode" class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
+                <input type="text" id="searchNamaPT" placeholder="Cari Berdasarkan Nama PT" 
+                       class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
+                <input type="month" id="searchPeriode" 
+                       class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
             </div>
-            <div class="mb-6 flex justify-end">
-                <button id="clearFilters" class="bg-red-500 text-white py-2 px-4 rounded-lg shadow-md hover:bg-red-600 transition-all transform hover:scale-105">Hapus Filter</button>
+            <div class="mb-6 flex justify-between items-center">
+                <button id="selectAll" 
+                        class="bg-teal-500 text-white py-2 px-4 rounded-lg shadow-md hover:bg-teal-600 
+                               transition-all transform hover:scale-105">
+                    Pilih Semua
+                </button>
+                <button id="clearFilters" 
+                        class="bg-red-500 text-white py-2 px-4 rounded-lg shadow-md hover:bg-red-600 
+                               transition-all transform hover:scale-105">
+                    Hapus Filter
+                </button>
             </div>
 
             <div class="overflow-x-auto relative">
                 <table id="preOrderTable" class="w-full table-auto border-collapse text-left text-sm">
                     <thead class="bg-teal-100 text-teal-700">
                         <tr>
+                            <th class="py-4 px-6 border-b">
+                                <input type="checkbox" id="headerCheckbox" 
+                                       class="form-checkbox h-4 w-4 text-teal-600 transition duration-150 ease-in-out">
+                            </th>
                             <th class="py-4 px-6 border-b">#</th>
                             <th class="py-4 px-6 border-b">Periode</th>
                             <th class="py-4 px-6 border-b">Nama PT</th>
@@ -167,41 +179,33 @@
 
             <!-- Pagination -->
             <div class="mt-4 flex justify-center items-center gap-4">
-                <button id="prevPage" class="bg-gray-300 text-gray-700 py-2 px-4 rounded-lg shadow-md hover:bg-gray-400 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
+                <button id="prevPage" 
+                        class="bg-gray-300 text-gray-700 py-2 px-4 rounded-lg shadow-md hover:bg-gray-400 
+                               transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
                     &lt;
                 </button>
                 <span id="currentPage" class="text-gray-700">Halaman 1</span>
-                <button id="nextPage" class="bg-gray-300 text-gray-700 py-2 px-4 rounded-lg shadow-md hover:bg-gray-400 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
+                <button id="nextPage" 
+                        class="bg-gray-300 text-gray-700 py-2 px-4 rounded-lg shadow-md hover:bg-gray-400 
+                               transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
                     &gt;
                 </button>
             </div>
 
-            <!-- Export Buttons Section -->
-            <section class="mt-8 flex flex-wrap gap-6 justify-center">
-                <button id="exportExcel" class="export-btn flex items-center bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 text-white py-3 px-8 rounded-lg shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all ease-in-out duration-300 space-x-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <!-- Export Button -->
+            <div class="mt-8 flex justify-center">
+                <button id="exportExcel" 
+                        class="export-btn flex items-center bg-gradient-to-r from-green-400 to-green-600 
+                               hover:from-green-500 hover:to-green-700 text-white py-3 px-8 rounded-lg shadow-xl 
+                               hover:shadow-2xl transform hover:scale-105 transition-all ease-in-out duration-300 space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" 
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M12 20l-5-5h3V3h4v12h3z"></path>
                         <path d="M19 9v6a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V9"></path>
                     </svg>
                     <span>Ekspor ke Excel</span>
                 </button>
-
-                <button id="exportWord" class="export-btn flex items-center bg-gradient-to-r from-blue-400 to-blue-600 hover:from-blue-500 hover:to-blue-700 text-white py-3 px-8 rounded-lg shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all ease-in-out duration-300 space-x-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M4 2v20l16-10z"></path>
-                        <path d="M14 2v6h6"></path>
-                    </svg>
-                    <span>Ekspor ke Word</span>
-                </button>
-
-                <button id="exportPDF" class="export-btn flex items-center bg-gradient-to-r from-red-400 to-red-600 hover:from-red-500 hover:to-red-700 text-white py-3 px-8 rounded-lg shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all ease-in-out duration-300 space-x-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M6 4v16l8-8z"></path>
-                        <path d="M14 4v4h4"></path>
-                    </svg>
-                    <span>Ekspor ke PDF</span>
-                </button>
-            </section>
+            </div>
         </section>
 
         <!-- Modal Edit -->
@@ -209,63 +213,71 @@
             <div class="bg-white rounded-lg w-11/12 md:w-1/2 lg:w-1/3 p-6 relative">
                 <h2 class="text-2xl font-semibold mb-4">Edit Data PreOrder</h2>
                 <form id="editForm" class="grid grid-cols-1 gap-4">
-                    <!-- Periode Edit Input -->
                     <div>
                         <label for="editPeriode" class="block text-gray-700 mb-2">Periode (Bulan & Tahun)</label>
-                        <input type="month" id="editPeriode" name="editPeriode" required class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
+                        <input type="month" id="editPeriode" name="editPeriode" required 
+                               class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
                     </div>
                     
-                    <!-- Nama PT Edit Input -->
                     <div>
                         <label for="editNamaPT" class="block text-gray-700 mb-2">Nama PT</label>
-                        <input type="text" id="editNamaPT" name="editNamaPT" required placeholder="Masukkan Nama PT" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
+                        <input type="text" id="editNamaPT" name="editNamaPT" required placeholder="Masukkan Nama PT" 
+                               class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
                     </div>
-                    
-                    <!-- Supplier Edit Input -->
                     <div>
                         <label for="editSupplier" class="block text-gray-700 mb-2">Supplier</label>
-                        <input type="text" id="editSupplier" name="editSupplier" required placeholder="Masukkan Nama Supplier" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
+                        <input type="text" id="editSupplier" name="editSupplier" required placeholder="Masukkan Nama Supplier" 
+                               class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
                     </div>
                     
-                    <!-- PreOrder Edit Input -->
                     <div>
                         <label for="editPreOrder" class="block text-gray-700 mb-2">PreOrder</label>
-                        <input type="text" id="editPreOrder" name="editPreOrder" required placeholder="Masukkan Nomor PreOrder" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
+                        <input type="text" id="editPreOrder" name="editPreOrder" required placeholder="Masukkan Nomor PreOrder" 
+                               class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
                     </div>
                     
-                    <!-- Invoice Edit Input -->
                     <div>
                         <label for="editInvoice" class="block text-gray-700 mb-2">Invoice</label>
-                        <input type="text" id="editInvoice" name="editInvoice" required placeholder="Masukkan Nomor Invoice" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
+                        <input type="text" id="editInvoice" name="editInvoice" required placeholder="Masukkan Nomor Invoice" 
+                               class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
                     </div>
                     
-                    <!-- Tanggal Invoice Edit Input -->
                     <div>
                         <label for="editTglInvoice" class="block text-gray-700 mb-2">Tanggal Invoice</label>
-                        <input type="date" id="editTglInvoice" name="editTglInvoice" required placeholder="Pilih Tanggal Invoice" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
+                        <input type="date" id="editTglInvoice" name="editTglInvoice" required 
+                               class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
                     </div>
                     
-                    <!-- Total Edit Input -->
                     <div>
                         <label for="editTotal" class="block text-gray-700 mb-2">Total (Rp)</label>
-                        <input type="number" id="editTotal" name="editTotal" required placeholder="Masukkan Total (Rp)" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300" min="0" step="0.01">
+                        <input type="number" id="editTotal" name="editTotal" required placeholder="Masukkan Total (Rp)" 
+                               class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300" 
+                               min="0" step="0.01">
                     </div>
                     
-                    <!-- Keterangan Edit Input -->
                     <div>
                         <label for="editKeterangan" class="block text-gray-700 mb-2">Keterangan</label>
-                        <input type="text" id="editKeterangan" name="editKeterangan" required placeholder="Masukkan Keterangan" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
+                        <input type="text" id="editKeterangan" name="editKeterangan" required placeholder="Masukkan Keterangan" 
+                               class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
                     </div>
                     
-                    <!-- Faktur Edit Input -->
                     <div>
                         <label for="editFaktur" class="block text-gray-700 mb-2">Faktur</label>
-                        <input type="text" id="editFaktur" name="editFaktur" required placeholder="Masukkan Nomor Faktur" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
+                        <input type="text" id="editFaktur" name="editFaktur" required placeholder="Masukkan Nomor Faktur" 
+                               class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
                     </div>
                     
                     <div class="flex justify-end gap-4 mt-4">
-                        <button type="button" id="cancelEdit" class="bg-gray-500 text-white py-2 px-4 rounded-lg shadow-md hover:bg-gray-600 transition-all transform hover:scale-105">Batal</button>
-                        <button type="submit" class="bg-teal-600 text-white py-2 px-4 rounded-lg shadow-md hover:bg-teal-700 transition-all transform hover:scale-105">Simpan</button>
+                        <button type="button" id="cancelEdit" 
+                                class="bg-gray-500 text-white py-2 px-4 rounded-lg shadow-md hover:bg-gray-600 
+                                       transition-all transform hover:scale-105">
+                            Batal
+                        </button>
+                        <button type="submit" 
+                                class="bg-teal-600 text-white py-2 px-4 rounded-lg shadow-md hover:bg-teal-700 
+                                       transition-all transform hover:scale-105">
+                            Simpan
+                        </button>
                     </div>
                 </form>
             </div>
@@ -273,11 +285,8 @@
 
     </div>
 
-    <!-- ExcelJS -->
-    <script src="https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js"></script>
-    
     <!-- Script.js -->
     <script type="module" src="script.js"></script>
 
 </body>
-</html>
+                                </html>
